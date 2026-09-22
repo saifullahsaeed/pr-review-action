@@ -1,0 +1,52 @@
+[
+  {
+    "filePath": "/repo/src/orders/settle.ts",
+    "messages": [
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 2,
+        "message": "'legacyTotal' is assigned a value but never used.",
+        "messageId": "unusedVar",
+        "line": 61,
+        "column": 9,
+        "endLine": 61,
+        "endColumn": 20
+      },
+      {
+        "ruleId": "semi",
+        "severity": 1,
+        "message": "Missing semicolon.",
+        "messageId": "missingSemi",
+        "line": 74,
+        "column": 12,
+        "endLine": 75,
+        "endColumn": 1
+      }
+    ],
+    "suppressedMessages": [],
+    "errorCount": 1,
+    "fatalErrorCount": 0,
+    "warningCount": 1,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 1
+  },
+  {
+    "filePath": "/repo/src/legacy/broken.ts",
+    "messages": [
+      {
+        "ruleId": null,
+        "severity": 2,
+        "fatal": true,
+        "message": "Parsing error: Unexpected token }",
+        "line": 3,
+        "column": 1
+      }
+    ],
+    "suppressedMessages": [],
+    "errorCount": 1,
+    "fatalErrorCount": 1,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0
+  }
+]

@@ -2,6 +2,7 @@ import type {
   Category,
   Finding,
   FindingInput,
+  ProbeRun,
   Report,
   Severity,
   Source,
@@ -64,6 +65,7 @@ export function buildReport(input: {
   startedAt: string;
   finishedAt: string;
   overview?: string;
+  probes?: ProbeRun[];
   findings: readonly FindingInput[];
 }): { report: Report; collected: Collected } {
   const collected = collectFindings(input.findings);
@@ -76,6 +78,7 @@ export function buildReport(input: {
     ...(input.overview !== undefined && input.overview.trim() !== ""
       ? { overview: input.overview }
       : {}),
+    ...(input.probes !== undefined ? { probes: input.probes } : {}),
     summary: summarize(collected.findings),
     findings: collected.findings,
   };
@@ -138,6 +141,17 @@ export function jsonReport(report: Report): Record<string, unknown> {
     finishedAt: report.finishedAt,
   };
   if (report.overview !== undefined) out.overview = report.overview;
+  if (report.probes !== undefined) {
+    out.probes = report.probes.map((run) => {
+      const entry: Record<string, unknown> = {
+        probe: run.probe,
+        categories: [...run.categories],
+        status: run.status,
+      };
+      if (run.detail !== undefined) entry.detail = run.detail;
+      return entry;
+    });
+  }
   out.summary = jsonSummary(report.summary);
   out.findings = report.findings.map(jsonFinding);
   return out;

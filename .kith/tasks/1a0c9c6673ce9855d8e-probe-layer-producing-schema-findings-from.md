@@ -1,6 +1,6 @@
 # Probe layer producing schema findings from deterministic tools
 
-**Status:** planning · **Priority:** normal · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-09-22T15:40:18.106925+00:00
+**Status:** done · **Priority:** normal · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-09-22T16:35:12.190575+00:00
 
 ## How you know it is done
 
@@ -8,12 +8,12 @@ Deterministic scanners run and their output normalized into the findings model. 
 
 ## Checklist
 
-- [ ] Probe runner interface: run a tool, capture output, normalize to findings
-- [ ] osv-scanner/trivy probe for dependency advisories
-- [ ] gitleaks probe for secrets
-- [ ] semgrep probe for security patterns
-- [ ] Linter and structure-metrics probes (duplication, size, coupling)
-- [ ] Fixture repo with planted issues; expected-findings tests green
+- [x] Probe runner interface: run a tool, capture output, normalize to findings
+- [x] osv-scanner/trivy probe for dependency advisories
+- [x] gitleaks probe for secrets
+- [x] semgrep probe for security patterns
+- [x] Linter and structure-metrics probes (duplication, size, coupling)
+- [x] Fixture repo with planted issues; expected-findings tests green
 
 
 ---

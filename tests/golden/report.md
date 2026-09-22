@@ -28,6 +28,15 @@
 | probe | 5 |
 | llm | 3 |
 
+### Probes
+
+- `osv-scanner` (dependency) — **ok**
+- `gitleaks` (secret) — **ok**
+- `semgrep` (security) — **ok**
+- `eslint` (quality) — **ok**
+- `ruff` (quality) — **skipped** — ruff is not installed, so no Python lint rules ran
+- `metrics` (structure) — **ok**
+
 ## Overview
 
 Secrets and dependency exposure are the urgent part: an AWS key is in source and the lockfile pins a vulnerable lodash. Below that, one injection path and one double-charge path, then layering and duplication debt in the orders area.

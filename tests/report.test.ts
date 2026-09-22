@@ -78,6 +78,7 @@ test("findings are sorted severity-first and stable across runs", () => {
     startedAt: golden.startedAt,
     finishedAt: golden.finishedAt,
     overview: golden.overview,
+    probes: golden.probes,
     findings: [...fixtureFindings()].reverse(),
   });
   assert.deepEqual(

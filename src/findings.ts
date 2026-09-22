@@ -71,6 +71,19 @@ export interface TargetInfo {
   commit?: string;
 }
 
+export type ProbeStatus = "ok" | "skipped" | "failed";
+
+/**
+ * What Harrier actually ran. A report that says "clean" without this is not to be trusted:
+ * a no-secrets result means nothing if gitleaks never ran.
+ */
+export interface ProbeRun {
+  probe: string;
+  categories: Category[];
+  status: ProbeStatus;
+  detail?: string;
+}
+
 export interface Report {
   schemaVersion: "1.0.0";
   tool: ToolInfo;
@@ -78,6 +91,7 @@ export interface Report {
   startedAt: string;
   finishedAt: string;
   overview?: string;
+  probes?: ProbeRun[];
   summary: Summary;
   findings: Finding[];
 }

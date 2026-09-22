@@ -72,6 +72,16 @@ export function renderMarkdown(report: Report): string {
   ];
 
   const body: string[] = [];
+  if (report.probes !== undefined && report.probes.length > 0) {
+    body.push("", "### Probes", "");
+    for (const run of report.probes) {
+      body.push(
+        `- \`${run.probe}\` (${run.categories.join(", ")}) — **${run.status}**${
+          run.detail ? ` — ${run.detail}` : ""
+        }`,
+      );
+    }
+  }
   if (report.overview !== undefined && report.overview.trim() !== "") {
     body.push("", "## Overview", "", report.overview);
   }

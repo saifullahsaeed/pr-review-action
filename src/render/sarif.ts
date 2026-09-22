@@ -105,9 +105,10 @@ export function sarifLog(report: Report): Record<string, unknown> {
     },
     results,
   };
-  if (report.overview !== undefined) {
-    run.properties = { overview: report.overview };
-  }
+  const properties: Record<string, unknown> = {};
+  if (report.overview !== undefined) properties.overview = report.overview;
+  if (report.probes !== undefined) properties.probes = report.probes;
+  if (Object.keys(properties).length > 0) run.properties = properties;
 
   return {
     $schema: "https://json.schemastore.org/sarif-2.1.0.json",

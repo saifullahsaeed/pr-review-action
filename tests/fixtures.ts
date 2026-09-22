@@ -116,6 +116,19 @@ export function fixtureReport(): Report {
     finishedAt: "2026-09-22T10:03:12.000Z",
     overview:
       "Secrets and dependency exposure are the urgent part: an AWS key is in source and the lockfile pins a vulnerable lodash. Below that, one injection path and one double-charge path, then layering and duplication debt in the orders area.",
+    probes: [
+      { probe: "osv-scanner", categories: ["dependency"], status: "ok" },
+      { probe: "gitleaks", categories: ["secret"], status: "ok" },
+      { probe: "semgrep", categories: ["security"], status: "ok" },
+      { probe: "eslint", categories: ["quality"], status: "ok" },
+      {
+        probe: "ruff",
+        categories: ["quality"],
+        status: "skipped",
+        detail: "ruff is not installed, so no Python lint rules ran",
+      },
+      { probe: "metrics", categories: ["structure"], status: "ok" },
+    ],
     findings: fixtureFindings(),
   });
   return report;

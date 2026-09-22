@@ -28,6 +28,10 @@
     "startedAt": { "type": "string", "format": "date-time" },
     "finishedAt": { "type": "string", "format": "date-time" },
     "overview": { "type": "string" },
+    "probes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/probeRun" }
+    },
     "summary": {
       "type": "object",
       "required": ["total", "bySeverity", "byCategory", "bySource"],
@@ -45,6 +49,17 @@
     }
   },
   "$defs": {
+    "probeRun": {
+      "type": "object",
+      "required": ["probe", "categories", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "probe": { "type": "string", "minLength": 1 },
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "status": { "enum": ["ok", "skipped", "failed"] },
+        "detail": { "type": "string" }
+      }
+    },
     "countMap": {
       "type": "object",
       "additionalProperties": { "type": "integer", "minimum": 0 }

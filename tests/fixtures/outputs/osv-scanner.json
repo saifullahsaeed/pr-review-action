@@ -1,0 +1,32 @@
+{
+  "results": [
+    {
+      "source": { "path": "package-lock.json", "type": "lockfile" },
+      "packages": [
+        {
+          "package": { "name": "lodash", "version": "4.17.15", "ecosystem": "npm" },
+          "vulnerabilities": [
+            {
+              "schema_version": "1.9.0",
+              "id": "GHSA-aaaa-bbbb-cccc",
+              "aliases": ["CVE-2020-8203"],
+              "summary": "Prototype pollution in lodash",
+              "affected": [
+                {
+                  "package": { "ecosystem": "npm", "name": "lodash" },
+                  "ranges": [
+                    { "type": "ECOSYSTEM", "events": [{ "introduced": "0" }, { "fixed": "4.17.21" }] }
+                  ],
+                  "versions": []
+                }
+              ],
+              "references": [{ "type": "ADVISORY", "url": "https://example.invalid/advisory" }],
+              "database_specific": { "severity": "HIGH" }
+            }
+          ],
+          "groups": [{ "ids": ["GHSA-aaaa-bbbb-cccc"] }]
+        }
+      ]
+    }
+  ]
+}

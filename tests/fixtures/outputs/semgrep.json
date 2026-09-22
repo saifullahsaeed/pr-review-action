@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "results": [
+    {
+      "check_id": "typescript.lang.security.audit.sqli.tainted-sql-string",
+      "path": "src/api/users.ts",
+      "start": { "line": 88, "col": 5, "offset": 2400 },
+      "end": { "line": 92, "col": 2, "offset": 2510 },
+      "extra": {
+        "message": "User data flows into a SQL query built by string concatenation.",
+        "severity": "ERROR",
+        "metadata": { "cwe": ["CWE-89"], "confidence": "HIGH", "technology": ["typescript"] },
+        "engine_kind": "OSS",
+        "lines": "db.query(\"SELECT * FROM users WHERE id = \" + req.params.id)",
+        "metavars": {},
+        "fix": "Use a parameterised query.",
+        "is_ignored": false,
+        "validation_state": "NO_VALIDATOR"
+      },
+      "skipped_rules": []
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["src/api/users.ts"], "skipped": [] },
+  "skipped_rules": []
+}

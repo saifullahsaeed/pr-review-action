@@ -38,6 +38,8 @@ probe layer and the LLM layer carrying file/line/severity/category.
 ## Open decisions
 
 - Language: TypeScript (Kith's call, 22 Sep 2026 — veto with "Python")
-- Which language linters ship wired in v1 (task 221)
+- ~~Which language linters ship wired in v1~~ — DECIDED 22 Sep 2026 by Kith: eslint (JS/TS) and
+  ruff (Python), each optional and reported as `skipped` when absent.
+- Model endpoint for the LLM judgement passes (task 222) — needs his choice or key.
 - Vulnerability-DB mirror mechanics for air-gapped installs (task 223)
 - PR-run semantics — whole-repo vs scoped to changed files (later milestone)

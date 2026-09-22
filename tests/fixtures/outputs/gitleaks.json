@@ -1,0 +1,22 @@
+[
+  {
+    "RuleID": "aws-access-key",
+    "Description": "AWS Access Key",
+    "StartLine": 12,
+    "EndLine": 12,
+    "StartColumn": 8,
+    "EndColumn": 41,
+    "Match": "aws_access_key_id = AKIAEXAMPLEKEYEXAMPLEKEY",
+    "Secret": "AKIAEXAMPLEKEYEXAMPLEKEY",
+    "File": "src/config.ts",
+    "SymlinkFile": "",
+    "Commit": "",
+    "Entropy": 3.4,
+    "Author": "",
+    "Email": "",
+    "Date": "",
+    "Message": "",
+    "Tags": ["aws", "key"],
+    "Fingerprint": "src/config.ts:aws-access-key:12"
+  }
+]
