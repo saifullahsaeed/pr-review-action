@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harrier.dev/schemas/findings.schema.json",
+  "title": "Harrier findings report",
+  "type": "object",
+  "required": ["schemaVersion", "tool", "target", "startedAt", "finishedAt", "summary", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["root"],
+      "additionalProperties": false,
+      "properties": {
+        "root": { "type": "string" },
+        "commit": { "type": "string" }
+      }
+    },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "finishedAt": { "type": "string", "format": "date-time" },
+    "overview": { "type": "string" },
+    "summary": {
+      "type": "object",
+      "required": ["total", "bySeverity", "byCategory", "bySource"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "bySeverity": { "$ref": "#/$defs/countMap" },
+        "byCategory": { "$ref": "#/$defs/countMap" },
+        "bySource": { "$ref": "#/$defs/countMap" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "countMap": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "location": {
+      "type": "object",
+      "required": ["path", "startLine"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "startLine": { "type": "integer", "minimum": 1 },
+        "startColumn": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 },
+        "endColumn": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "id",
+        "ruleId",
+        "ruleName",
+        "category",
+        "severity",
+        "message",
+        "locations",
+        "source",
+        "fingerprint"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "ruleId": { "type": "string", "minLength": 1 },
+        "ruleName": { "type": "string", "minLength": 1 },
+        "category": {
+          "enum": ["dependency", "secret", "security", "quality", "structure", "bug"]
+        },
+        "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+        "message": { "type": "string", "minLength": 1 },
+        "locations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/location" } },
+        "source": { "enum": ["probe", "llm"] },
+        "probe": { "type": "string" },
+        "confidence": { "enum": ["high", "medium", "low"] },
+        "evidence": { "type": "string" },
+        "fixHint": { "type": "string" },
+        "fingerprint": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

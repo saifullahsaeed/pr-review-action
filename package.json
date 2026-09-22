@@ -1,0 +1,20 @@
+{
+  "name": "harrier",
+  "version": "0.1.0",
+  "description": "Harrier — self-hosted code review. Reviews a codebase and hands over one findings report.",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "goldens": "node scripts/goldens.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Harrier",
+          "version": "0.1.0",
+          "rules": [
+            {
+              "id": "eslint/no-unused-vars",
+              "name": "eslint/no-unused-vars",
+              "shortDescription": {
+                "text": "Mechanical quality"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "gitleaks/aws-access-key",
+              "name": "gitleaks/aws-access-key",
+              "shortDescription": {
+                "text": "Credential in source"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "llm/bug.non-idempotent-retry",
+              "name": "llm/bug.non-idempotent-retry",
+              "shortDescription": {
+                "text": "Non-idempotent retry"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "llm/quality.copy-paste",
+              "name": "llm/quality.copy-paste",
+              "shortDescription": {
+                "text": "Copy-paste duplication"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "llm/structure.layering",
+              "name": "llm/structure.layering",
+              "shortDescription": {
+                "text": "Layering violation"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "metrics/long-file",
+              "name": "metrics/long-file",
+              "shortDescription": {
+                "text": "Measured structure"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "osv/CVE-2020-8203",
+              "name": "osv/CVE-2020-8203",
+              "shortDescription": {
+                "text": "Dependency with known vulnerability"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "semgrep/node-sql-injection",
+              "name": "semgrep/node-sql-injection",
+              "shortDescription": {
+                "text": "SQL injection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            }
+          ]
+        }
+      },
+      "automationDetails": {
+        "id": "harrier/review/1.0.0"
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "startTimeUtc": "2026-09-22T10:00:00.000Z",
+          "endTimeUtc": "2026-09-22T10:03:12.000Z"
+        }
+      ],
+      "originalUriBaseIds": {
+        "SRCROOT": {
+          "uri": "file://fixtures/planted/"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "osv/CVE-2020-8203",
+          "ruleIndex": 6,
+          "level": "error",
+          "message": {
+            "text": "lodash@4.17.15 is affected by CVE-2020-8203 (prototype pollution)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "28ba63c3ca6deb75"
+          },
+          "properties": {
+            "category": "dependency",
+            "source": "probe",
+            "probe": "osv-scanner"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "Upgrade lodash to 4.17.21."
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "gitleaks/aws-access-key",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "An AWS access key id is committed in source."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/config.ts"
+                },
+                "region": {
+                  "startLine": 12
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "c6a8fef830c055b6"
+          },
+          "properties": {
+            "category": "secret",
+            "source": "probe",
+            "probe": "gitleaks"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "Rotate the key and remove it from history."
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "semgrep/node-sql-injection",
+          "ruleIndex": 7,
+          "level": "error",
+          "message": {
+            "text": "Query built by string concatenation with request input."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/api/users.ts"
+                },
+                "region": {
+                  "startLine": 88,
+                  "startColumn": 5,
+                  "endLine": 92
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/api/admin.ts"
+                },
+                "region": {
+                  "startLine": 31
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "98c38c69761f8921"
+          },
+          "properties": {
+            "category": "security",
+            "source": "probe",
+            "probe": "semgrep"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "Use a parameterised query."
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "llm/bug.non-idempotent-retry",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "The retry loop calls sendCharge() again on timeout without an idempotency key, so a slow response double-charges."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/billing/charge.ts"
+                },
+                "region": {
+                  "startLine": 57
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "3a03f879cb6d25eb"
+          },
+          "properties": {
+            "category": "bug",
+            "source": "llm",
+            "confidence": "high"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "Pass an idempotency key derived from the invoice id."
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "llm/quality.copy-paste",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "Totalling and rounding logic is copy-pasted from src/billing/totals.ts with one sign flipped."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/orders/settle.ts"
+                },
+                "region": {
+                  "startLine": 10,
+                  "endLine": 48
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "c2549e53878b7f20"
+          },
+          "properties": {
+            "category": "quality",
+            "source": "llm",
+            "confidence": "medium"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "Extract the shared totalling helper."
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "llm/structure.layering",
+          "ruleIndex": 4,
+          "level": "warning",
+          "message": {
+            "text": "The web layer imports straight from the database layer, bypassing the service boundary (7 imports)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/web/routes/orders.ts"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "b05893836a02a2dd"
+          },
+          "properties": {
+            "category": "structure",
+            "source": "llm",
+            "confidence": "medium"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "Route these reads through the orders service."
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "eslint/no-unused-vars",
+          "ruleIndex": 0,
+          "level": "note",
+          "message": {
+            "text": "'legacyTotal' is assigned a value but never used."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/orders/settle.ts"
+                },
+                "region": {
+                  "startLine": 61
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "3696bb1dc5b03acc"
+          },
+          "properties": {
+            "category": "quality",
+            "source": "probe",
+            "probe": "eslint"
+          }
+        },
+        {
+          "ruleId": "metrics/long-file",
+          "ruleIndex": 5,
+          "level": "note",
+          "message": {
+            "text": "File is 912 lines with 14 top-level functions; review cost is high."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/legacy/importer.ts"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "harrierFingerprint/v1": "6955d3cc6890b351"
+          },
+          "properties": {
+            "category": "structure",
+            "source": "probe",
+            "probe": "metrics"
+          }
+        }
+      ],
+      "properties": {
+        "overview": "Secrets and dependency exposure are the urgent part: an AWS key is in source and the lockfile pins a vulnerable lodash. Below that, one injection path and one double-charge path, then layering and duplication debt in the orders area."
+      }
+    }
+  ]
+}

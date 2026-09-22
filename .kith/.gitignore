@@ -1,0 +1,22 @@
+# Written by Kith. This folder is committed on purpose — see README.md — so this
+# says what must NOT be, rather than what may.
+
+# Throwaways. Screenshots, one-off scripts, anything run once and forgotten. He is told
+# to put scripts that touch a system or an account here, so this line is load-bearing.
+scratch/
+
+# Credentials, by shape rather than by name.
+*.env
+.env*
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa*
+*credentials*
+*secret*
+
+# Transcripts, if one is ever written here. They carry whole tool results verbatim —
+# measured on this machine: 143 plaintext copies of one API key across two of them.
+conversations/
+offload/
