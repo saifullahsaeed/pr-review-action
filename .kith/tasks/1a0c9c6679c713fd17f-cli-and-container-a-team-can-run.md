@@ -8,11 +8,11 @@
 
 ## Checklist
 
-- [ ] `harrier review` CLI with --out, --endpoint, --categories and --severity flags
-- [ ] Pipeline: probes -> LLM passes -> merge/dedupe -> render
-- [ ] Dockerfile and docker-compose.yml
-- [ ] Offline/mirrored vulnerability-DB path documented and wired
-- [ ] End-to-end over two real repos; all three report files verified
+- [x] `harrier review` CLI with --out, --endpoint, --categories and --severity flags
+- [x] Pipeline: probes -> LLM passes -> merge/dedupe -> render
+- [x] Dockerfile and docker-compose.yml
+- [x] Offline/mirrored vulnerability-DB path documented and wired
+- [x] End-to-end over two real repos; all three report files verified
 
 
 ---

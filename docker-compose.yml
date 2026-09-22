@@ -1,0 +1,22 @@
+# Harrier, self-hosted. Mount a repo read-only, get the report back in ./report.
+#
+#   HARRIER_TARGET=/path/to/repo HARRIER_LLM_API_KEY=... docker compose up
+#
+# With no key set, run the probes only:
+#   docker compose run harrier review /workspace --out /report --no-llm
+services:
+  harrier:
+    build: .
+    image: harrier:0.1.0
+    volumes:
+      - ${HARRIER_TARGET:-.}:/workspace:ro
+      - ${HARRIER_OUT:-./report}:/report
+      - harrier-osv-db:/var/cache/osv-db
+    environment:
+      HARRIER_LLM_API_KEY: ${HARRIER_LLM_API_KEY:-}
+      HARRIER_LLM_BASE_URL: ${HARRIER_LLM_BASE_URL:-}
+      HARRIER_LLM_MODEL: ${HARRIER_LLM_MODEL:-}
+    command: ["review", "/workspace", "--out", "/report"]
+
+volumes:
+  harrier-osv-db:

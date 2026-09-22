@@ -40,6 +40,9 @@ probe layer and the LLM layer carrying file/line/severity/category.
 - Language: TypeScript (Kith's call, 22 Sep 2026 — veto with "Python")
 - ~~Which language linters ship wired in v1~~ — DECIDED 22 Sep 2026 by Kith: eslint (JS/TS) and
   ruff (Python), each optional and reported as `skipped` when absent.
-- Model endpoint for the LLM judgement passes (task 222) — needs his choice or key.
+- ~~Model endpoint for the LLM judgement passes~~ — DECIDED 22 Sep 2026 (he picked "OpenRouter,
+  your key"): OpenRouter via the Keychain key `claude-openrouter`, default model
+  deepseek/deepseek-v4.1-flash. Any OpenAI-compatible endpoint stays configurable — that is the
+  self-hosted story.
 - Vulnerability-DB mirror mechanics for air-gapped installs (task 223)
 - PR-run semantics — whole-repo vs scoped to changed files (later milestone)

@@ -6,7 +6,7 @@ import { runCommand } from "../exec.ts";
 import type { Probe, ProbeContext, ProbeOutcome } from "../types.ts";
 
 /**
- * Secrets — `gitleaks detect --source <root> --no-git --report-format json --report-path <file>`.
+ * Secrets — `gitleaks dir --report-format json --report-path <file> <root>`.
  * Output shape (gitleaks v8, from report/json.go + report/finding.go): a bare JSON array of
  * findings with PascalCase fields.
  *
@@ -75,18 +75,11 @@ export const gitleaksProbe: Probe = {
     const scratch = mkdtempSync(join(tmpdir(), "harrier-gitleaks-"));
     const reportPath = join(scratch, "gitleaks.json");
     try {
+      // `gitleaks dir` is the current form for a plain directory (since v8.19); the older
+      // `detect --source --no-git` still works but is deprecated. Exit code 1 means leaks OR an
+      // error, so the report file — not the exit code — decides whether this succeeded.
       const outcome = await runCommand(
-        [
-          "gitleaks",
-          "detect",
-          "--source",
-          context.root,
-          "--no-git",
-          "--report-format",
-          "json",
-          "--report-path",
-          reportPath,
-        ],
+        ["gitleaks", "dir", "--report-format", "json", "--report-path", reportPath, context.root],
         { cwd: context.root, timeoutMs: context.timeoutMs },
       );
       if (outcome.kind === "missing") {

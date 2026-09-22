@@ -93,8 +93,18 @@ export const osvScannerProbe: Probe = {
   categories: ["dependency"],
   async run(context: ProbeContext): Promise<ProbeOutcome> {
     const probe = "osv-scanner";
+    // Offline modes, straight from the tool's own docs: --offline-vulnerabilities with
+    // --download-offline-databases mirrors the advisory database; --offline runs air-gapped.
+    // The cache location is OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY.
+    const mode = context.options?.osvMode ?? "online";
+    const offlineFlags =
+      mode === "offline"
+        ? ["--offline"]
+        : mode === "refresh"
+          ? ["--offline-vulnerabilities", "--download-offline-databases"]
+          : [];
     const outcome = await runCommand(
-      ["osv-scanner", "scan", "--format", "json", "--recursive", context.root],
+      ["osv-scanner", "scan", "--format", "json", "--recursive", ...offlineFlags, context.root],
       { cwd: context.root, timeoutMs: context.timeoutMs },
     );
     if (outcome.kind === "missing") {

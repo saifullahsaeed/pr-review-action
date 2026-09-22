@@ -1,0 +1,10 @@
+node_modules
+.git
+.kith
+report
+reports
+tests
+scripts
+README.md
+*.log
+.DS_Store

@@ -128,10 +128,14 @@ export const eslintProbe: Probe = {
     // eslint exits 1 when there are findings or when a file fails to parse; its JSON is still good.
     const start = outcome.stdout.indexOf("[");
     if (start < 0) {
+      // eslint with no configuration in the repo is a gap to report, not a failure.
+      const noConfig = /config/i.test(outcome.stderr);
       return {
         probe,
-        status: "failed",
-        detail: `eslint produced no parseable JSON (exit ${String(outcome.code)}): ${outcome.stderr.slice(0, 200)}`,
+        status: noConfig ? "skipped" : "failed",
+        detail: noConfig
+          ? "eslint found no configuration in this repo, so no JS/TS lint rules ran"
+          : `eslint produced no parseable JSON (exit ${String(outcome.code)}): ${outcome.stderr.slice(0, 200)}`,
         findings: [],
       };
     }
