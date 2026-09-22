@@ -26,6 +26,15 @@ const SKIP_DIRS = new Set([
   ".harrier",
 ]);
 
+/**
+ * Tooling artifacts are not code under review. Hidden directories are skipped wholesale —
+ * `.claude/worktrees/` alone can hold full stale copies of a repo, and treating those as code
+ * produced 14k phantom duplication findings on the first real review.
+ */
+function isSkippable(entry: string): boolean {
+  return SKIP_DIRS.has(entry) || entry.startsWith(".");
+}
+
 const SOURCE_EXTENSIONS = new Set([
   ".ts",
   ".tsx",
@@ -50,12 +59,15 @@ export interface MetricsThresholds {
   longFileLines: number;
   duplicateLines: number;
   fanoutLimit: number;
+  /** Duplication findings are capped: on a large repo one rule can otherwise emit thousands. */
+  maxDuplicateFindings: number;
 }
 
 export const DEFAULT_THRESHOLDS: MetricsThresholds = {
   longFileLines: 800,
   duplicateLines: 12,
   fanoutLimit: 25,
+  maxDuplicateFindings: 25,
 };
 
 export function collectSourceFiles(root: string): SourceFile[] {
@@ -68,7 +80,7 @@ export function collectSourceFiles(root: string): SourceFile[] {
       return;
     }
     for (const entry of entries.sort()) {
-      if (SKIP_DIRS.has(entry)) continue;
+      if (isSkippable(entry)) continue;
       const full = join(directory, entry);
       let stats;
       try {
@@ -242,21 +254,22 @@ export function findCycles(graph: ReadonlyMap<string, string[]>): string[][] {
 
 export function metricsFindings(
   files: readonly SourceFile[],
-  thresholds: MetricsThresholds = DEFAULT_THRESHOLDS,
+  thresholds: Partial<MetricsThresholds> = {},
 ): FindingInput[] {
+  const limits = { ...DEFAULT_THRESHOLDS, ...thresholds };
   const findings: FindingInput[] = [];
   const source = "probe" as const;
   const probe = "metrics";
 
   for (const file of files) {
     const lineCount = file.lines.length;
-    if (lineCount > thresholds.longFileLines) {
+    if (lineCount > limits.longFileLines) {
       findings.push({
         ruleId: "metrics/long-file",
         ruleName: "Measured structure",
         category: "structure",
         severity: "info",
-        message: `File is ${lineCount} lines (over ${thresholds.longFileLines}); review cost is high.`,
+        message: `File is ${lineCount} lines (over ${limits.longFileLines}); review cost is high.`,
         locations: [{ path: file.path, startLine: 1 }],
         source,
         probe,
@@ -265,7 +278,10 @@ export function metricsFindings(
     }
   }
 
-  for (const block of duplicateBlocks(files, thresholds.duplicateLines)) {
+  for (const block of duplicateBlocks(files, limits.duplicateLines).slice(
+    0,
+    limits.maxDuplicateFindings,
+  )) {
     findings.push({
       ruleId: "metrics/duplicate-block",
       ruleName: "Duplicated code block",
@@ -298,13 +314,13 @@ export function metricsFindings(
   }
 
   for (const [path, targets] of graph) {
-    if (targets.length > thresholds.fanoutLimit) {
+    if (targets.length > limits.fanoutLimit) {
       findings.push({
         ruleId: "metrics/high-fanout",
         ruleName: "High fan-out",
         category: "structure",
         severity: "info",
-        message: `File imports ${targets.length} modules (over ${thresholds.fanoutLimit}); it knows too much about the codebase.`,
+        message: `File imports ${targets.length} modules (over ${limits.fanoutLimit}); it knows too much about the codebase.`,
         locations: [{ path, startLine: 1 }],
         source,
         probe,

@@ -15,6 +15,10 @@
 - [x] End-to-end over two real repos; all three report files verified
 
 
+## Delivered
+
+- Self-review report — Harrier reviewing its own repo in the container (post non-root fix)
+
 ---
 
 Mirrored from Kith's board. Edit the task in Kith rather than here — this file is rewritten whenever the task changes.

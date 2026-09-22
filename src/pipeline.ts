@@ -38,6 +38,17 @@ const CATEGORY_OF_PASS: Record<JudgementPass, Category> = {
   bug: "bug",
 };
 
+/**
+ * A finding in a tooling artifact (`.claude/worktrees/` and friends) is out of scope: those are
+ * stale copies of the repo, not code under review. External scanners walk the directory
+ * themselves and cannot know that, so the scope is enforced here — and recorded, never silent.
+ */
+export function isArtifactPath(path: string): boolean {
+  return path
+    .split(/[\\/]+/)
+    .some((segment) => segment !== "." && segment !== ".." && segment.startsWith("."));
+}
+
 export interface ReviewOptions {
   root: string;
   outDir: string;
@@ -71,7 +82,16 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
     ...(options.probeOptions !== undefined ? { options: options.probeOptions } : {}),
   });
   const runs: ProbeRun[] = [...sweep.runs];
-  const findings: FindingInput[] = [...sweep.findings];
+  const findings: FindingInput[] = [];
+  let artifactFindings = 0;
+  for (const finding of sweep.findings) {
+    const path = finding.locations[0]?.path ?? "";
+    if (isArtifactPath(path)) {
+      artifactFindings += 1;
+      continue;
+    }
+    findings.push(finding);
+  }
   let overview: string | undefined;
 
   if (options.complete !== undefined) {
@@ -81,7 +101,14 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
       "quality",
       "bug",
     ]);
-    findings.push(...judgement.findings);
+    for (const finding of judgement.findings) {
+      const path = finding.locations[0]?.path ?? "";
+      if (isArtifactPath(path)) {
+        artifactFindings += 1;
+        continue;
+      }
+      findings.push(finding);
+    }
     for (const status of judgement.passes) {
       const dropped = judgement.dropped.length;
       runs.push({
@@ -106,6 +133,16 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
       categories: ["structure", "quality", "bug"],
       status: "skipped",
       detail: options.llmSkippedNote,
+    });
+  }
+
+  // The drop is recorded once, after every layer has run, with the true total.
+  if (artifactFindings > 0) {
+    runs.push({
+      probe: "scope",
+      categories: ["quality", "security", "secret"],
+      status: "ok",
+      detail: `${artifactFindings} finding(s) in tooling artifacts (.claude/ and similar) dropped as out of scope`,
     });
   }
 

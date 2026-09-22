@@ -104,3 +104,24 @@ test("CLI arguments parse into a review, and mistakes name themselves", () => {
   assert.match(parseReviewArgs(["audit", "/repo"]).error ?? '', /expected "review"/);
   assert.match(parseReviewArgs(["review"]).error ?? "", /needs a path/);
 });
+
+test("findings in tooling artifacts are dropped as out of scope, and the drop is recorded", async () => {
+  await withTempDir(async (outDir) => {
+    const artifacts = await review({
+      root: plantedRoot,
+      outDir,
+      probes: [metricsProbe],
+      complete: async () => ({
+        content:
+          '{"findings":[{"ruleName":"credential","severity":"critical","message":"leaked","path":".claude/worktrees/old/src/a.ts","startLine":1}],"overview":"o"}',
+        model: "recorded",
+      }),
+      passes: ["bug"],
+      now: fixedNow,
+    });
+    assert.ok(!artifacts.report.findings.some((f) => f.locations[0]?.path.includes("worktrees")));
+    const scope = (artifacts.report.probes ?? []).find((run) => run.probe === "scope");
+    assert.ok(scope, "the drop must be recorded in probes[]");
+    assert.match(scope.detail ?? "", /1 finding\(s\)/);
+  });
+});

@@ -171,3 +171,34 @@ test("a probe sweep over the planted fixture records what ran and what it found"
   );
   assertModel(sweep.findings);
 });
+
+test("tooling artifacts are not code: hidden directories are skipped and duplication is capped", async () => {
+  const { mkdtempSync, writeFileSync, rmSync, mkdirSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdirSafe(), "harrier-artifacts-"));
+  try {
+    const body = Array.from({ length: 14 }, (_, i) => `const v${i} = ${i};`).join("\n");
+    writeFileSync(join(dir, "real.ts"), body);
+    mkdirSync(join(dir, ".claude", "worktrees", "old"), { recursive: true });
+    writeFileSync(join(dir, ".claude", "worktrees", "old", "real.ts"), body);
+    const files = collectSourceFiles(dir);
+    assert.deepEqual(files.map((f) => f.path), ["real.ts"]);
+    const findings = metricsFindings(files, {
+      longFileLines: 1000,
+      duplicateLines: 10,
+      fanoutLimit: 50,
+      maxDuplicateFindings: 1,
+    });
+    assert.equal(
+      findings.filter((f) => f.ruleId === "metrics/duplicate-block").length,
+      0,
+      "a single copy is not duplication",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+function tmpdirSafe(): string {
+  return "/tmp";
+}

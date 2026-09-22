@@ -16,6 +16,7 @@ services:
       HARRIER_LLM_API_KEY: ${HARRIER_LLM_API_KEY:-}
       HARRIER_LLM_BASE_URL: ${HARRIER_LLM_BASE_URL:-}
       HARRIER_LLM_MODEL: ${HARRIER_LLM_MODEL:-}
+      HARRIER_LLM_TIMEOUT_MS: ${HARRIER_LLM_TIMEOUT_MS:-}
     command: ["review", "/workspace", "--out", "/report"]
 
 volumes:

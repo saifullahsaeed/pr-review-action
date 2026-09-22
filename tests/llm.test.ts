@@ -83,6 +83,17 @@ test("endpoint config reports what is missing instead of failing obscurely", () 
   assert.equal(configured.config?.baseUrl, DEFAULT_BASE_URL);
   assert.equal(configured.config?.model, DEFAULT_MODEL);
   assert.equal(configured.missing.length, 0);
+
+  // docker-compose hands unset vars through as empty strings; they must not become "" or 0.
+  const emptyStrings = configFromEnv({
+    HARRIER_LLM_API_KEY: "test-key",
+    HARRIER_LLM_BASE_URL: "",
+    HARRIER_LLM_MODEL: "",
+    HARRIER_LLM_TIMEOUT_MS: "",
+  });
+  assert.equal(emptyStrings.config?.baseUrl, DEFAULT_BASE_URL);
+  assert.equal(emptyStrings.config?.model, DEFAULT_MODEL);
+  assert.equal(emptyStrings.config?.timeoutMs, 120000);
 });
 
 test("review context numbers its lines and records what it truncated", () => {
