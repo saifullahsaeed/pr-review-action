@@ -73,3 +73,7 @@ in the morning with nobody watching exactly as it applies to a conversation.
   (`tests/fixtures/outputs/`); live validation happens inside the container.
 - OpenRouter key lives in Keychain service `claude-openrouter`, not in any file — read it with
   `security find-generic-password -s claude-openrouter -w` into env; print lengths, never the key.
+- node:24-bookworm-slim already owns uid 1000 as `node`: `useradd --uid 1000` dies on "UID 1000 is
+  not unique". Reuse the account — `chown node:node` + `USER node`.
+- `docker compose up` with both `build:` and `image:` silently reuses a local image — clean-checkout
+  evidence needs an explicit `docker compose build` inside the clone.

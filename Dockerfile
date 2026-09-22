@@ -52,10 +52,11 @@ COPY schemas ./schemas
 
 # Run as a non-root user: Harrier's job is reading code nobody has vetted yet, so the container
 # should not be root while it does. (Harrier's own first review raised this as two HIGH findings.)
-RUN useradd --create-home --uid 1000 harrier \
- && mkdir -p /report \
- && chown -R harrier:harrier /app /report /var/cache/osv-db
-USER harrier
+# The node base image already owns uid 1000 as its `node` user, so reuse it — `useradd --uid 1000`
+# dies on "UID 1000 is not unique".
+RUN mkdir -p /report \
+ && chown -R node:node /app /report /var/cache/osv-db
+USER node
 
 # Sources run as TypeScript directly (Node 24 type stripping); there is no build step.
 ENTRYPOINT ["node", "src/cli.ts"]

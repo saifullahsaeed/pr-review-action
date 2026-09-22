@@ -54,9 +54,12 @@ anywhere). Six report files total.
 
 Then the interesting part: the container run reviewed Harrier itself and raised **two HIGH
 security findings on our own Dockerfile** — no `USER`, so the container runs as root while reading
-code nobody has vetted. Fixed by running as a non-root `harrier` user; rebuild + rescan runs in
-`.kith/scratch/verify-fix.sh`, which also does the clean-checkout leg of the done-condition. The
-two remaining findings are the planted fixtures under `tests/fixtures/planted`, doing their job.
+code nobody has vetted. Fixed by running the container as a non-root user — which took two tries: `useradd --uid 1000` died
+on "UID 1000 is not unique" (the node base image already owns uid 1000 as `node`), so the fix is
+`USER node` reusing that account. Rebuild + rescan confirms: 2 findings left, both the planted
+fixtures under `tests/fixtures/planted` doing their job. `.kith/scratch/verify-fix.sh` runs the
+clean-checkout leg of the done-condition — now forcing `docker compose build` from the clone,
+because `up` alone silently reuses the local image and would have proven nothing.
 
 Also fixed while in here: the scanner binaries were x86_64 in an arm64 image (fine under Docker
 Desktop's silent emulation, exec-format-error on a bare arm64 host) — the Dockerfile now selects
