@@ -1,6 +1,6 @@
 # LLM judgement passes through a configured endpoint
 
-**Status:** planning · **Priority:** normal · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-09-22T15:40:18.152561+00:00
+**Status:** done · **Priority:** normal · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-09-22T16:44:04.295367+00:00
 
 ## How you know it is done
 
@@ -8,11 +8,11 @@ Structure, quality and bug review passes calling a configured OpenAI-compatible 
 
 ## Checklist
 
-- [ ] Endpoint config (base URL, key, model) and typed client
-- [ ] Review protocol per category (structure, quality, bugs) requiring code locations
-- [ ] Normalization plus a self-check dropping findings without locations
-- [ ] Recorded-response fixtures; suite green with no network
-- [ ] Live smoke run against the fixture repo
+- [x] Endpoint config (base URL, key, model) and typed client
+- [x] Review protocol per category (structure, quality, bugs) requiring code locations
+- [x] Normalization plus a self-check dropping findings without locations
+- [x] Recorded-response fixtures; suite green with no network
+- [x] Live smoke run against the fixture repo
 
 
 ---

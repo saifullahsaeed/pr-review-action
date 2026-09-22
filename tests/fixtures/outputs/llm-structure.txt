@@ -1,0 +1,26 @@
+Here is the JSON object:
+
+```json
+{
+  "findings": [
+    {
+      "ruleName": "Layering violation",
+      "severity": "medium",
+      "message": "src/a.ts imports src/b.ts and src/b.ts imports src/a.ts, so the two modules cannot be read, tested or replaced on their own.",
+      "path": "src/a.ts",
+      "startLine": 1,
+      "endLine": 1,
+      "evidence": "import { b } from \"./b.ts\";",
+      "confidence": "high",
+      "fixHint": "Move the shared dependency out of both modules."
+    },
+    {
+      "ruleName": "Speculative concern",
+      "severity": "low",
+      "message": "This might have been generated at some point.",
+      "confidence": "low"
+    }
+  ],
+  "overview": "The two-module cycle between a.ts and b.ts is the one structural problem here; the rest of the tree is small and flat."
+}
+```
