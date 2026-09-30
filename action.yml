@@ -42,10 +42,17 @@ runs:
         git fetch origin ${{ github.base_ref || 'main' }} --depth=1 || true
         REF="origin/${{ github.base_ref || 'main' }}"
         
+        LLM_FLAG=""
+        if [ -n "${{ inputs.api-key }}" ]; then
+          LLM_FLAG=""
+        else
+          LLM_FLAG="--no-llm"
+        fi
+
         node ${{ github.action_path }}/src/cli.ts review . \
           --out ${{ inputs.out-dir }} \
           --diff $REF \
-          ${{ env.HARRIER_LLM_API_KEY != '' && '' || '--no-llm' }}
+          $LLM_FLAG
 
     - name: Post PR Summary Comment
       if: github.event_name == 'pull_request'
