@@ -32,6 +32,31 @@ runs:
       with:
         node-version: "24"
 
+    - name: Install Security Scanners (Gitleaks, Semgrep, OSV-Scanner)
+      shell: bash
+      run: |
+        # Install Gitleaks
+        if ! command -v gitleaks &> /dev/null; then
+          echo "Installing gitleaks..."
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks 2>/dev/null || true
+        fi
+
+        # Install OSV-Scanner
+        if ! command -v osv-scanner &> /dev/null; then
+          echo "Installing osv-scanner..."
+          curl -sSL -o /usr/local/bin/osv-scanner https://github.com/google/osv-scanner/releases/download/v1.8.2/osv-scanner_linux_amd64 2>/dev/null && chmod +x /usr/local/bin/osv-scanner || true
+        fi
+
+        # Install Semgrep
+        if ! command -v semgrep &> /dev/null; then
+          echo "Installing semgrep..."
+          python3 -m pip install --break-system-packages semgrep 2>/dev/null || pip install semgrep 2>/dev/null || true
+        fi
+
+        # Install ESLint & Ruff if appropriate
+        npm install -g eslint 2>/dev/null || true
+        pip install ruff 2>/dev/null || true
+
     - name: Run Harrier Review
       shell: bash
       env:
