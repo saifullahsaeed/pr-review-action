@@ -44,6 +44,7 @@ export function buildUserMessage(
   context: ReviewContext,
   pass: JudgementPass,
   priorFindings: readonly { ruleName: string; category: string; severity: string; message: string; path?: string; line?: number }[] = [],
+  customInstructions?: string,
 ): string {
   const parts = [
     PASS_BRIEFS[pass],
@@ -53,6 +54,14 @@ export function buildUserMessage(
     "## Tree",
     context.tree,
   ];
+
+  if (customInstructions && customInstructions.trim().length > 0) {
+    parts.push(
+      "",
+      "## Repository-Specific Review Instructions & Rules (Plain English)",
+      customInstructions.trim(),
+    );
+  }
 
   if (priorFindings.length > 0) {
     parts.push(

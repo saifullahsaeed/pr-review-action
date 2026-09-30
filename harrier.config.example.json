@@ -12,5 +12,13 @@
     "maxFiles": 40,
     "maxLinesPerFile": 400,
     "maxTotalLines": 6000
+  },
+  "rules": {
+    "instructions": "This is a production backend service. Prefer pure functional components, enforce input validation on all entrypoints, and never permit string-concatenated SQL queries.",
+    "custom": [
+      "Reject any hardcoded tokens or API keys immediately.",
+      "All math operations must check for division by zero and NaN.",
+      "Prefer TypeScript interfaces over classes for data structures."
+    ]
   }
 }

@@ -53,6 +53,13 @@ if (!effectiveUseLlm) {
 }
 
 const started = Date.now();
+// Combine rules instructions and custom bullet rules into plain English text
+const customRulesList = fileConfig?.rules?.custom ?? [];
+const customInstructions = [
+  fileConfig?.rules?.instructions,
+  customRulesList.length > 0 ? "Specific rules to enforce strictly:\n" + customRulesList.map((r) => `- ${r}`).join("\n") : undefined,
+].filter(Boolean).join("\n\n");
+
 const artifacts = await review({
   root: args.root,
   outDir: effectiveOut,
@@ -61,6 +68,7 @@ const artifacts = await review({
   timeoutMs: effectiveTimeout,
   probeOptions: { osvMode: args.refreshDb ? "refresh" : args.offline ? "offline" : "online" },
   ...(args.diffRef !== undefined ? { diffRef: args.diffRef } : {}),
+  ...(customInstructions ? { customInstructions } : {}),
   ...(completeFn !== undefined ? { complete: completeFn, passes: effectivePasses } : {}),
   ...(llmSkippedNote !== undefined ? { llmSkippedNote } : {}),
 });

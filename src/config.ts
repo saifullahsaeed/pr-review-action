@@ -22,6 +22,8 @@ export interface HarrierConfig {
   rules?: {
     enable?: string[];
     disable?: string[];
+    instructions?: string;
+    custom?: string[];
   };
 }
 

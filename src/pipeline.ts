@@ -67,6 +67,7 @@ export interface ReviewOptions {
   timeoutMs?: number;
   now?: () => Date;
   diffRef?: string;
+  customInstructions?: string;
 }
 
 export interface ReviewArtifacts {
@@ -143,6 +144,7 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
       context,
       options.passes ?? ["structure", "quality", "bug"],
       priorFindings,
+      options.customInstructions,
     );
     const candidateLlmFindings: FindingInput[] = [];
     for (const finding of judgement.findings) {
