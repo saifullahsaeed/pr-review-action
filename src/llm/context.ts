@@ -15,6 +15,7 @@ export interface ContextBudget {
   maxFiles: number;
   maxLinesPerFile: number;
   maxTotalLines: number;
+  targetFiles?: string[];
 }
 
 export const DEFAULT_BUDGET: ContextBudget = {
@@ -28,7 +29,18 @@ export function buildContext(
   budget: Partial<ContextBudget> = {},
 ): ReviewContext {
   const limits = { ...DEFAULT_BUDGET, ...budget };
-  const files = collectSourceFiles(root);
+  let files = collectSourceFiles(root);
+
+  if (limits.targetFiles && limits.targetFiles.length > 0) {
+    const targetSet = new Set(
+      limits.targetFiles.map((p) => p.replace(/^\.\//, "").split("\\").join("/"))
+    );
+    // Prioritize target files first
+    files = [
+      ...files.filter((f) => targetSet.has(f.path)),
+      ...files.filter((f) => !targetSet.has(f.path)),
+    ];
+  }
   const included: string[] = [];
   const truncated: string[] = [];
   const sections: string[] = [];

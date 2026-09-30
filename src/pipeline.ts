@@ -1,8 +1,10 @@
+import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Category, FindingInput, ProbeRun, Report, Severity } from "./findings.ts";
 import { severityRank } from "./findings.ts";
 import { buildReport } from "./report.ts";
+import { renderHtml } from "./render/html.ts";
 import { renderJson } from "./render/json.ts";
 import { renderMarkdown } from "./render/markdown.ts";
 import { renderSarif } from "./render/sarif.ts";
@@ -63,11 +65,12 @@ export interface ReviewOptions {
   minSeverity?: Severity;
   timeoutMs?: number;
   now?: () => Date;
+  diffRef?: string;
 }
 
 export interface ReviewArtifacts {
   report: Report;
-  paths: { json: string; sarif: string; markdown: string };
+  paths: { json: string; sarif: string; markdown: string; html: string };
 }
 
 /** The whole review: probes, judgement passes, one merged findings model, three renderings. */
@@ -95,12 +98,51 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
   let overview: string | undefined;
 
   if (options.complete !== undefined) {
-    const context = buildContext(options.root);
-    const judgement = await runJudgement(options.complete, context, options.passes ?? [
-      "structure",
-      "quality",
-      "bug",
-    ]);
+    let diffFiles: string[] | undefined;
+    if (options.diffRef) {
+      try {
+        const stdout = execSync(`git diff --name-only ${options.diffRef}`, {
+          cwd: options.root,
+          encoding: "utf8",
+        });
+        diffFiles = stdout
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0 && !isArtifactPath(line));
+      } catch {
+        // Fall back gracefully to full context if git diff fails
+      }
+    }
+
+    // Smart prioritization: target files changed in diff OR flagged by deterministic probes
+    const priorityFiles = new Set<string>();
+    if (diffFiles) {
+      for (const f of diffFiles) priorityFiles.add(f);
+    }
+    for (const f of findings) {
+      const loc = f.locations?.[0]?.path;
+      if (loc && !isArtifactPath(loc)) priorityFiles.add(loc);
+    }
+
+    const context = buildContext(options.root, {
+      ...(priorityFiles.size > 0 ? { targetFiles: [...priorityFiles] } : {}),
+    });
+
+    const priorFindings = findings.map((f) => ({
+      ruleName: f.ruleName,
+      category: f.category,
+      severity: f.severity,
+      message: f.message,
+      path: f.locations?.[0]?.path,
+      line: f.locations?.[0]?.startLine,
+    }));
+
+    const judgement = await runJudgement(
+      options.complete,
+      context,
+      options.passes ?? ["structure", "quality", "bug"],
+      priorFindings,
+    );
     for (const finding of judgement.findings) {
       const path = finding.locations[0]?.path ?? "";
       if (isArtifactPath(path)) {
@@ -169,9 +211,11 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
     json: join(options.outDir, "report.json"),
     sarif: join(options.outDir, "report.sarif"),
     markdown: join(options.outDir, "report.md"),
+    html: join(options.outDir, "report.html"),
   };
   writeFileSync(paths.json, renderJson(report));
   writeFileSync(paths.sarif, renderSarif(report));
   writeFileSync(paths.markdown, renderMarkdown(report));
+  writeFileSync(paths.html, renderHtml(report));
   return { report, paths };
 }

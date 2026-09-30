@@ -31,8 +31,8 @@ node src/cli.ts review /path/to/repo --out ./report
 ```
 
 writes `report.json` (canonical, machine-readable — the thing you feed to an AI), `report.sarif`
-(SARIF 2.1.0) and `report.md`. Options: `--categories dependency,secret,...`, `--severity high`,
-`--endpoint <url>`, `--model <id>`, `--no-llm`, `--timeout <ms>`.
+(SARIF 2.1.0), `report.md` and `report.html` (interactive triage viewer). Options: `--categories dependency,secret,...`, `--severity high`,
+`--endpoint <url>`, `--model <id>`, `--no-llm`, `--diff <ref>`, `--timeout <ms>`.
 
 With a container, which is the self-hosted shape:
 

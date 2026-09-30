@@ -40,7 +40,11 @@ export const PASS_BRIEFS: Record<JudgementPass, string> = {
     "code actually does; do not pattern-match on names.",
 };
 
-export function buildUserMessage(context: ReviewContext, pass: JudgementPass): string {
+export function buildUserMessage(
+  context: ReviewContext,
+  pass: JudgementPass,
+  priorFindings: readonly { ruleName: string; category: string; severity: string; message: string; path?: string; line?: number }[] = [],
+): string {
   const parts = [
     PASS_BRIEFS[pass],
     "",
@@ -48,10 +52,26 @@ export function buildUserMessage(context: ReviewContext, pass: JudgementPass): s
     "",
     "## Tree",
     context.tree,
+  ];
+
+  if (priorFindings.length > 0) {
+    parts.push(
+      "",
+      "## Findings from Automated Scanners & Metrics",
+      "Deterministic tools and code metrics already flagged the following potential issues in these files:",
+      ...priorFindings.slice(0, 30).map((f) => {
+        const loc = f.path ? `${f.path}${f.line ? `:${f.line}` : ""}` : "repo-wide";
+        return `- [${f.severity}] ${f.category} (${f.ruleName}) at ${loc}: ${f.message}`;
+      }),
+      "Use these as hints to verify or deepen your review where relevant, but do not simply duplicate them without semantic judgement.",
+    );
+  }
+
+  parts.push(
     "",
     "## Source",
     context.body,
-  ];
+  );
   if (context.truncated.length > 0) {
     parts.push("", `Note: content for ${context.truncated.length} file(s) was truncated.`);
   }

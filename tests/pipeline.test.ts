@@ -24,7 +24,7 @@ test("a review writes all three report files and records what ran", async () => 
       probes: [metricsProbe],
       now: fixedNow,
     });
-    for (const path of [artifacts.paths.json, artifacts.paths.sarif, artifacts.paths.markdown]) {
+    for (const path of [artifacts.paths.json, artifacts.paths.sarif, artifacts.paths.markdown, artifacts.paths.html]) {
       assert.ok(readFileSync(path, "utf8").length > 0, `${path} is empty`);
     }
     const parsed = JSON.parse(readFileSync(artifacts.paths.json, "utf8")) as {
@@ -103,6 +103,8 @@ test("CLI arguments parse into a review, and mistakes name themselves", () => {
   assert.match(parseReviewArgs(["review", "/repo", "--severity", "urgent"]).error ?? "", /unknown severity/);
   assert.match(parseReviewArgs(["audit", "/repo"]).error ?? '', /expected "review"/);
   assert.match(parseReviewArgs(["review"]).error ?? "", /needs a path/);
+  assert.equal(parseReviewArgs(["review", "/repo", "--diff", "HEAD~1"]).diffRef, "HEAD~1");
+  assert.equal(parseReviewArgs(["review", "/repo", "--since", "main"]).diffRef, "main");
 });
 
 test("findings in tooling artifacts are dropped as out of scope, and the drop is recorded", async () => {

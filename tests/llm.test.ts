@@ -102,3 +102,39 @@ test("review context numbers its lines and records what it truncated", () => {
   assert.equal(context.included.length, 1);
   assert.ok(context.truncated.length >= 2, "files left out must be recorded as truncated");
 });
+
+test("review context prioritizes target files when supplied", () => {
+  const context = buildContext(plantedRoot, {
+    maxFiles: 1,
+    targetFiles: ["src/dup.ts"],
+  });
+  assert.equal(context.included[0], "src/dup.ts");
+});
+
+test("runJudgement injects prior probe findings into the prompt", async () => {
+  let userPrompt = "";
+  const mockComplete = async (messages: ChatMessage[]) => {
+    userPrompt = messages.find((m) => m.role === "user")?.content ?? "";
+    return { content: '{"findings":[],"overview":"all good"}', model: "test-model" };
+  };
+
+  await runJudgement(
+    mockComplete,
+    buildContext(plantedRoot),
+    ["bug"],
+    [
+      {
+        ruleName: "SQL Injection",
+        category: "security",
+        severity: "high",
+        message: "Unsafe string concat in query",
+        path: "src/a.ts",
+        line: 12,
+      },
+    ],
+  );
+
+  assert.match(userPrompt, /Findings from Automated Scanners & Metrics/);
+  assert.match(userPrompt, /SQL Injection/);
+  assert.match(userPrompt, /src\/a\.ts:12/);
+});

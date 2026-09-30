@@ -35,7 +35,7 @@ in the morning with nobody watching exactly as it applies to a conversation.
 <!-- where the important things live, so nobody greps for them twice. -->
 
 - `src/findings.ts` — the model every layer speaks (Finding, Report, ProbeRun, fingerprint).
-- `src/report.ts` + `src/render/{json,sarif,markdown}.ts` — merge/dedupe + the three renderings.
+- `src/report.ts` + `src/render/{json,sarif,markdown,html}.ts` — merge/dedupe + the four renderings.
 - `src/probes/` — `exec.ts` (spawn, with `missing` as its own outcome), `adapters/` (gitleaks,
   semgrep, osvScanner, linters), `metrics.ts` (the probe that needs no external tool).
 - `src/llm/` — `config`/`client` (any OpenAI-compatible endpoint), `context` (line-numbered

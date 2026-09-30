@@ -18,6 +18,7 @@ export interface ReviewArgs {
   timeoutMs: number;
   offline: boolean;
   refreshDb: boolean;
+  diffRef?: string;
   error?: string;
 }
 
@@ -35,9 +36,11 @@ Options:
   --offline            nothing phones home: advisory lookups from the mirrored database,
                        judgement passes off unless --endpoint points at a local model
   --refresh-db         download/update the mirrored vulnerability database first
+  --diff <ref>         focus LLM review on files changed compared to git ref (e.g. main, HEAD~1)
+  --since <ref>        alias for --diff
   --timeout <ms>       per-scanner timeout (default: 120000)
 
-Writes report.json (canonical, machine-readable), report.sarif (SARIF 2.1.0) and report.md.
+Writes report.json (canonical, machine-readable), report.sarif (SARIF 2.1.0), report.md and report.html.
 Exit 0 once the review is written. Findings are not an error; they are the product.
 `;
 
@@ -112,6 +115,12 @@ export function parseReviewArgs(argv: readonly string[]): ReviewArgs {
         break;
       case "--refresh-db":
         args.refreshDb = true;
+        break;
+      case "--diff":
+      case "--since":
+        if (next === undefined) return { ...args, error: `${token} needs a git ref` };
+        args.diffRef = next;
+        index += 1;
         break;
       case "--help":
       case "-h":

@@ -48,6 +48,7 @@ const artifacts = await review({
   ...(args.minSeverity !== undefined ? { minSeverity: args.minSeverity } : {}),
   timeoutMs: args.timeoutMs,
   probeOptions: { osvMode: args.refreshDb ? "refresh" : args.offline ? "offline" : "online" },
+  ...(args.diffRef !== undefined ? { diffRef: args.diffRef } : {}),
   ...(completeFn !== undefined ? { complete: completeFn, passes: PASSES } : {}),
   ...(llmSkippedNote !== undefined ? { llmSkippedNote } : {}),
 });
@@ -65,5 +66,6 @@ console.log(
     `  wrote ${artifacts.paths.json}`,
     `        ${artifacts.paths.sarif}`,
     `        ${artifacts.paths.markdown}`,
+    `        ${artifacts.paths.html}`,
   ].join("\n"),
 );

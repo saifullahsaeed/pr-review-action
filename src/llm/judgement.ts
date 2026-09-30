@@ -133,6 +133,7 @@ export async function runJudgement(
   completeFn: CompleteFn,
   context: ReviewContext,
   passes: JudgementPass[] = ["structure", "quality", "bug"],
+  priorFindings: readonly { ruleName: string; category: string; severity: string; message: string; path?: string; line?: number }[] = [],
 ): Promise<JudgementResult> {
   const findings: FindingInput[] = [];
   const dropped: RawJudgement[] = [];
@@ -142,7 +143,7 @@ export async function runJudgement(
   for (const pass of passes) {
     const messages: ChatMessage[] = [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserMessage(context, pass) },
+      { role: "user", content: buildUserMessage(context, pass, priorFindings) },
     ];
     try {
       const response = await completeFn(messages);
