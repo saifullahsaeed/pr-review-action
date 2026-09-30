@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Harrier Configuration",
+  "description": "Optional configuration file for Harrier code review engine (harrier.config.json or .harrier.json)",
+  "type": "object",
+  "properties": {
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["dependency", "secret", "security", "quality", "structure", "bug"]
+      },
+      "description": "Limit review to these categories only"
+    },
+    "minSeverity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"],
+      "default": "info",
+      "description": "Minimum severity to include in the final report"
+    },
+    "outDir": {
+      "type": "string",
+      "default": "./report",
+      "description": "Directory where report files (json, sarif, md, html) will be written"
+    },
+    "useLlm": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to run semantic LLM passes"
+    },
+    "endpoint": {
+      "type": "string",
+      "description": "OpenAI-compatible LLM endpoint (e.g. http://localhost:11434/v1 or https://openrouter.ai/api/v1)"
+    },
+    "model": {
+      "type": "string",
+      "description": "LLM model identifier to use for structure, quality, bug passes and verifier"
+    },
+    "passes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["structure", "quality", "bug"]
+      },
+      "default": ["structure", "quality", "bug"]
+    },
+    "timeoutMs": {
+      "type": "number",
+      "default": 120000,
+      "description": "Timeout in milliseconds for scanner executions and API requests"
+    },
+    "offline": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, no outgoing network calls are permitted"
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "maxFiles": { "type": "number", "default": 40 },
+        "maxLinesPerFile": { "type": "number", "default": 400 },
+        "maxTotalLines": { "type": "number", "default": 6000 }
+      }
+    }
+  }
+}

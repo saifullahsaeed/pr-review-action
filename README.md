@@ -1,71 +1,143 @@
 # Harrier
 
-Self-hosted code review. Harrier's sole job is to review a codebase and report what is wrong with
-it — code structure, quality, bugs, security and dependency problems — as one findings report.
+<div align="center">
 
-Nothing about the reviewed code leaves the machine it runs on. Model calls go to whatever
-OpenAI-compatible endpoint the team configures, including one inside their own network.
+**Self-Hosted, Privacy-First Code Review Engine & CI Bot**
 
-## Status
+*Deterministic Security & Code Scanners + Multi-Pass LLM Review + Adversarial Hallucination Verifier*
 
-V1 in progress (milestone 85): the findings model and its three renderings — `report.json`
-(canonical, machine-readable), `report.sarif` (SARIF 2.1.0) and `report.md`. Next: the probe
-layer, the LLM judgement passes, then the CLI and container.
+[![Node 24](https://img.shields.io/badge/Node-24%2B-green.svg)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org)
+[![SARIF 2.1.0](https://img.shields.io/badge/SARIF-2.1.0-orange.svg)](https://sarifweb.azurewebsites.net)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Commands
+</div>
+
+---
+
+Harrier is a code review engine designed for engineering teams that cannot send source code to third-party cloud services. It runs locally in developer workflows, in CI/CD pipelines, or as an air-gapped Docker container.
+
+Harrier combines **deterministic scanning tools** with **adversarial semantic LLM passes**, validating all findings into a single unified schema rendered into four synchronized formats:
+1. **`report.json`** — Canonical, byte-stable JSON model.
+2. **`report.sarif`** — Full SARIF 2.1.0 specification for GitHub Code Scanning and IDEs.
+3. **`report.md`** — Clean GitHub Flavored Markdown summary.
+4. **`report.html`** — Interactive single-page report with instant severity/category filters and code search.
+
+---
+
+## Key Features
+
+- **100% Self-Hosted & Air-Gapped:** Zero telemetry. Compatible with local vLLM or Ollama instances, or remote endpoints via OpenRouter/OpenAI.
+- **Hybrid Review Architecture:**
+  - **Facts (Deterministic Probes):** Dependency vulnerabilities (`osv-scanner`), secret detection (`gitleaks`), security patterns (`semgrep`), style and linting (`eslint`, `ruff`), and algorithmic structural metrics (`metrics.ts`).
+  - **Semantic Judgement (LLM Passes):** Deep inspection for architecture, software quality, and business/authorization logic flaws.
+- **Codebase AST & Dependency Graph:** Parses JS/TS and Python symbols and cross-file imports to discover reverse dependencies and callers.
+- **Adversarial Hallucination Verifier:** A secondary verification agent evaluates all proposed model findings against the source code context, discarding false positives and nitpicks.
+- **Diff & PR Scoping (`--diff <ref>`):** Automatically reviews only modified files and their direct AST dependents, saving token budgets and speeding up CI reviews.
+- **Conversational PR Bot:** GitHub Action integration that reviews PR diffs and responds to inline `@harrier` comments.
+- **Flexible Configuration (`harrier.config.json`):** Tune token budgets, scanner timeouts, categories, and severity thresholds.
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js 24+ (Harrier runs TypeScript files natively with zero build step)
+- Git
+
+### 1. Local CLI Review
 
 ```sh
-npm install
-npm test          # node:test, golden-file comparisons
-npm run typecheck # tsc --noEmit
-npm run goldens   # regenerate tests/golden/ after an intentional rendering change
-node src/cli.ts review <path> [--out ./report] [--no-llm] [--offline]
+# Run a full review over any directory
+node src/cli.ts review /path/to/project --out ./report
+
+# Focus on changes in a pull request / branch
+node src/cli.ts review . --diff origin/main
+
+# Review with a local Ollama model
+node src/cli.ts review . \
+  --endpoint http://localhost:11434/v1 \
+  --model llama3
 ```
 
-Requires Node 24 (sources run as TypeScript directly; there is no build step yet).
+### 2. Run with Docker Compose
 
-## Running it
+Mount your repository read-only:
 
 ```sh
-node src/cli.ts review /path/to/repo --out ./report
+HARRIER_TARGET=/path/to/project HARRIER_LLM_API_KEY=your-key docker compose up
 ```
 
-writes `report.json` (canonical, machine-readable — the thing you feed to an AI), `report.sarif`
-(SARIF 2.1.0), `report.md` and `report.html` (interactive triage viewer). Options: `--categories dependency,secret,...`, `--severity high`,
-`--endpoint <url>`, `--model <id>`, `--no-llm`, `--diff <ref>`, `--timeout <ms>`.
+Artifacts will be written directly to `./report`.
 
-With a container, which is the self-hosted shape:
+---
+
+## Configuration (`harrier.config.json`)
+
+Harrier automatically looks for `harrier.config.json` or `.harrier.json` in your repository root:
+
+```json
+{
+  "categories": ["security", "bug", "structure", "quality", "dependency", "secret"],
+  "minSeverity": "info",
+  "outDir": "./report",
+  "useLlm": true,
+  "endpoint": "https://openrouter.ai/api/v1",
+  "model": "anthropic/claude-3.5-sonnet",
+  "passes": ["structure", "quality", "bug"],
+  "timeoutMs": 120000,
+  "budget": {
+    "maxFiles": 40,
+    "maxLinesPerFile": 400,
+    "maxTotalLines": 6000
+  }
+}
+```
+
+---
+
+## CLI Options
+
+```
+harrier review <path> [options]
+
+Options:
+  --out <dir>          Where the report goes (default: ./report)
+  --config <path>      Path to custom configuration file (e.g. harrier.config.json)
+  --diff <ref>         Focus LLM review on files changed compared to git ref (e.g. main, HEAD~1)
+  --since <ref>        Alias for --diff
+  --categories <a,b>   Filter by categories (dependency, secret, security, quality, structure, bug)
+  --severity <level>   Minimum severity (critical, high, medium, low, info)
+  --endpoint <url>     OpenAI-compatible LLM endpoint
+  --model <id>         Model identifier (default: anthropic/claude-3.5-sonnet)
+  --no-llm             Run deterministic scanners and metrics only
+  --offline            Do not perform external network lookups
+  --timeout <ms>       Per-scanner timeout in milliseconds (default: 120000)
+```
+
+---
+
+## CI/CD GitHub Actions Integration
+
+Harrier includes two ready-to-use workflows in `.github/workflows/`:
+- **`harrier-review.yml`**: Automatically reviews every Pull Request diff, runs probes and verifiers, uploads report artifacts, and posts a triage summary table.
+- **`harrier-bot.yml`**: Allows engineers to mention `@harrier <question>` in PR comments to get context-aware answers and suggested code fixes.
+
+---
+
+## Development & Testing
 
 ```sh
-HARRIER_TARGET=/path/to/repo HARRIER_LLM_API_KEY=... docker compose up
+# Run the test suite (40+ unit and integration tests)
+npm test
+
+# Type-check TypeScript sources
+npm run typecheck
 ```
 
-The repo mounts read-only and the report lands in `./report`. With no key configured the review
-still runs and reports the judgement passes as `skipped` — a report never claims a clean sweep it
-did not do.
+---
 
-### Staying offline
+## License
 
-`--offline` means nothing phones home: osv-scanner reads a mirrored advisory database
-(`OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY`) and the judgement passes run only if `--endpoint` points
-at a model inside your network. Mirror or refresh the database first with `--refresh-db`, which
-runs osv-scanner's `--offline-vulnerabilities --download-offline-databases`.
-
-### What is covered
-
-| Category | Who finds it |
-|---|---|
-| dependency | osv-scanner (advisory database) |
-| secret | gitleaks (redacted before it reaches the report) |
-| security | semgrep |
-| quality | eslint (JS/TS, the repo's own config), ruff (Python), measured duplication |
-| structure | measured size, import cycles and fan-out |
-| bug, plus structure/quality judgement | the LLM passes, through your configured endpoint |
-
-## The findings model
-
-`schemas/findings.schema.json` is the language-neutral contract; `src/findings.ts` is the typed
-implementation. Every layer speaks it: deterministic probes (dependency advisories, secrets,
-security patterns, mechanical quality, measured structure) produce `source: "probe"` findings,
-LLM judgement passes (structure, quality, bugs) produce `source: "llm"` findings with a
-confidence, and both are merged, deduped by fingerprint and rendered three ways.
+Harrier is open-source software licensed under the [MIT License](LICENSE).
+Author: [Saifullah Saeed](https://github.com/saifullahsaeed).

@@ -4,7 +4,23 @@
   "description": "Harrier — self-hosted code review. Reviews a codebase and hands over one findings report.",
   "type": "module",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "Saifullah Saeed <saifullahsaeed.work@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saifullahsaeed/harrier.git"
+  },
+  "keywords": [
+    "code-review",
+    "security-scanner",
+    "static-analysis",
+    "ast",
+    "sarif",
+    "self-hosted",
+    "llm",
+    "gitleaks",
+    "semgrep"
+  ],
   "engines": {
     "node": ">=24"
   },

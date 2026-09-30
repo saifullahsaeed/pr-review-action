@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { parseReviewArgs, PASSES, USAGE } from "./args.ts";
+import { loadConfigFile } from "./config.ts";
 import { complete } from "./llm/client.ts";
 import type { ChatMessage } from "./llm/client.ts";
 import type { LlmConfig } from "./llm/config.ts";
@@ -22,8 +23,19 @@ if (args.error !== undefined) {
   process.exit(2);
 }
 
+const fileConfig = loadConfigFile(args.root, args.configPath);
+
+const effectiveCategories = args.categories ?? fileConfig?.categories;
+const effectiveSeverity = args.minSeverity ?? fileConfig?.minSeverity;
+const effectiveOut = args.out !== "./report" ? args.out : (fileConfig?.outDir ?? args.out);
+const effectiveTimeout = args.timeoutMs !== 120000 ? args.timeoutMs : (fileConfig?.timeoutMs ?? args.timeoutMs);
+const effectiveUseLlm = args.useLlm && (fileConfig?.useLlm !== false);
+const effectivePasses = fileConfig?.passes ?? PASSES;
+
 const env = configFromEnv({
   ...process.env,
+  ...(fileConfig?.endpoint !== undefined ? { HARRIER_LLM_BASE_URL: fileConfig.endpoint } : {}),
+  ...(fileConfig?.model !== undefined ? { HARRIER_LLM_MODEL: fileConfig.model } : {}),
   ...(args.endpoint !== undefined ? { HARRIER_LLM_BASE_URL: args.endpoint } : {}),
   ...(args.model !== undefined ? { HARRIER_LLM_MODEL: args.model } : {}),
 });
@@ -32,8 +44,8 @@ const env = configFromEnv({
 // says so, exactly as it does for a scanner that is not installed.
 let llmSkippedNote: string | undefined;
 let completeFn: ReturnType<typeof makeComplete> | undefined;
-if (!args.useLlm) {
-  llmSkippedNote = "judgement passes disabled (--no-llm)";
+if (!effectiveUseLlm) {
+  llmSkippedNote = "judgement passes disabled (--no-llm or config)";
 } else if (env.config === undefined) {
   llmSkippedNote = `no model endpoint configured (${env.missing.join(", ")}) — judgement passes did not run`;
 } else {
@@ -43,13 +55,13 @@ if (!args.useLlm) {
 const started = Date.now();
 const artifacts = await review({
   root: args.root,
-  outDir: args.out,
-  ...(args.categories !== undefined ? { categories: args.categories } : {}),
-  ...(args.minSeverity !== undefined ? { minSeverity: args.minSeverity } : {}),
-  timeoutMs: args.timeoutMs,
+  outDir: effectiveOut,
+  ...(effectiveCategories !== undefined ? { categories: effectiveCategories } : {}),
+  ...(effectiveSeverity !== undefined ? { minSeverity: effectiveSeverity } : {}),
+  timeoutMs: effectiveTimeout,
   probeOptions: { osvMode: args.refreshDb ? "refresh" : args.offline ? "offline" : "online" },
   ...(args.diffRef !== undefined ? { diffRef: args.diffRef } : {}),
-  ...(completeFn !== undefined ? { complete: completeFn, passes: PASSES } : {}),
+  ...(completeFn !== undefined ? { complete: completeFn, passes: effectivePasses } : {}),
   ...(llmSkippedNote !== undefined ? { llmSkippedNote } : {}),
 });
 

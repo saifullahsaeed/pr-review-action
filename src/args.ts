@@ -19,6 +19,7 @@ export interface ReviewArgs {
   offline: boolean;
   refreshDb: boolean;
   diffRef?: string;
+  configPath?: string;
   error?: string;
 }
 
@@ -36,6 +37,7 @@ Options:
   --offline            nothing phones home: advisory lookups from the mirrored database,
                        judgement passes off unless --endpoint points at a local model
   --refresh-db         download/update the mirrored vulnerability database first
+  --config <path>      path to custom configuration file (e.g. harrier.config.json)
   --diff <ref>         focus LLM review on files changed compared to git ref (e.g. main, HEAD~1)
   --since <ref>        alias for --diff
   --timeout <ms>       per-scanner timeout (default: 120000)
@@ -115,6 +117,11 @@ export function parseReviewArgs(argv: readonly string[]): ReviewArgs {
         break;
       case "--refresh-db":
         args.refreshDb = true;
+        break;
+      case "--config":
+        if (next === undefined) return { ...args, error: "--config needs a file path" };
+        args.configPath = next;
+        index += 1;
         break;
       case "--diff":
       case "--since":

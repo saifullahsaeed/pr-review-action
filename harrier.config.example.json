@@ -1,0 +1,16 @@
+{
+  "categories": ["security", "bug", "structure", "quality", "dependency", "secret"],
+  "minSeverity": "info",
+  "outDir": "./report",
+  "useLlm": true,
+  "endpoint": "https://openrouter.ai/api/v1",
+  "model": "anthropic/claude-3.5-sonnet",
+  "passes": ["structure", "quality", "bug"],
+  "timeoutMs": 120000,
+  "offline": false,
+  "budget": {
+    "maxFiles": 40,
+    "maxLinesPerFile": 400,
+    "maxTotalLines": 6000
+  }
+}
