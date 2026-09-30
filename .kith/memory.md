@@ -36,10 +36,11 @@ in the morning with nobody watching exactly as it applies to a conversation.
 
 - `src/findings.ts` — the model every layer speaks (Finding, Report, ProbeRun, fingerprint).
 - `src/report.ts` + `src/render/{json,sarif,markdown,html}.ts` — merge/dedupe + the four renderings.
-- `src/probes/` — `exec.ts` (spawn, with `missing` as its own outcome), `adapters/` (gitleaks,
+- `src/probes/` — `exec.ts` (spawn, with `missing` as its own outcome), `astGraph.ts` (symbol indexing, cross-file reference & reverse dependency graph), `adapters/` (gitleaks,
   semgrep, osvScanner, linters), `metrics.ts` (the probe that needs no external tool).
 - `src/llm/` — `config`/`client` (any OpenAI-compatible endpoint), `context` (line-numbered
-  source), `prompts`, `judgement` (self-check drops findings with no real file+line).
+  source), `verifier.ts` (adversarial false-positive/hallucination filter), `prompts`, `judgement` (self-check drops findings with no real file+line).
+- `.github/workflows/` — `harrier-review.yml` (automated CI diff review & PR report) and `harrier-bot.yml` (`@harrier` conversational PR reply bot).
 - `src/cli.ts` + `src/args.ts` + `src/pipeline.ts` — the review pipeline.
 - `schemas/findings.schema.json` — language-neutral contract; `tests/golden/` — golden renderings;
   `tests/fixtures/outputs/` — recorded scanner output in the real tool formats.

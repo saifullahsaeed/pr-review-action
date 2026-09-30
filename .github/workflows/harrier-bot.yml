@@ -1,0 +1,103 @@
+name: Harrier PR Bot
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  harrier-reply:
+    # Only trigger when commented on a PR and mentions @harrier
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '@harrier') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Respond to PR comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HARRIER_LLM_API_KEY: ${{ secrets.HARRIER_LLM_API_KEY }}
+          HARRIER_LLM_BASE_URL: ${{ secrets.HARRIER_LLM_BASE_URL || 'https://openrouter.ai/api/v1' }}
+          HARRIER_LLM_MODEL: ${{ secrets.HARRIER_LLM_MODEL || 'anthropic/claude-3.5-sonnet' }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_USER: ${{ github.event.comment.user.login }}
+        run: |
+          node -e '
+          const fs = require("fs");
+          const { execSync } = require("child_process");
+
+          async function reply() {
+            const query = process.env.COMMENT_BODY.replace(/@harrier/g, "").trim();
+            const token = process.env.GITHUB_TOKEN;
+            const repo = process.env.GITHUB_REPOSITORY;
+            const prNum = process.env.PR_NUMBER;
+            const user = process.env.COMMENT_USER;
+
+            const apiKey = process.env.HARRIER_LLM_API_KEY;
+            const baseUrl = process.env.HARRIER_LLM_BASE_URL.replace(/\/$/, "");
+            const model = process.env.HARRIER_LLM_MODEL;
+
+            if (!apiKey) {
+              console.log("No LLM key configured");
+              return;
+            }
+
+            // Gather changed files in PR
+            let diffSummary = "";
+            try {
+              diffSummary = execSync("git diff HEAD~1 --stat", { encoding: "utf8" });
+            } catch (e) {
+              diffSummary = "git diff unavailable";
+            }
+
+            const prompt = [
+              "You are Harrier, an expert code-review bot in GitHub PR comments.",
+              "A developer asked you a question regarding the pull request.",
+              "PR diff summary:\n" + diffSummary,
+              "Question from @" + user + ": " + query,
+              "Provide a direct, helpful, code-accurate response. If proposing code fixes, format with markdown code blocks.",
+            ].join("\n\n");
+
+            const res = await fetch(`${baseUrl}/chat/completions`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                model,
+                messages: [{ role: "user", content: prompt }]
+              })
+            });
+
+            const data = await res.json();
+            const replyText = data.choices?.[0]?.message?.content || "Sorry, I could not generate a response.";
+
+            const finalComment = `> @${user}: ${query}\n\n${replyText}\n\n*— Harrier Review Assistant*`;
+
+            await fetch(`https://api.github.com/repos/${repo}/issues/${prNum}/comments`, {
+              method: "POST",
+              headers: {
+                "Authorization": `token ${token}`,
+                "Accept": "application/vnd.github.v3+json",
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ body: finalComment })
+            });
+          }
+
+          reply().catch(console.error);
+          '

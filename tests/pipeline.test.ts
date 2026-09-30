@@ -73,7 +73,7 @@ test("judgement passes run through the injected endpoint and land in probes[]", 
       passes: ["bug"],
       now: fixedNow,
     });
-    assert.equal(calls.length, 1);
+    assert.ok(calls.length >= 1, "at least one pass called");
     const probes = artifacts.report.probes ?? [];
     assert.ok(probes.some((run) => run.probe === "llm/bug" && run.status === "ok"));
     assert.ok(artifacts.report.findings.some((finding) => finding.ruleId.startsWith("llm/bug.")));

@@ -11,6 +11,7 @@ import { renderSarif } from "./render/sarif.ts";
 import { buildContext } from "./llm/context.ts";
 import type { CompleteFn } from "./llm/judgement.ts";
 import { runJudgement } from "./llm/judgement.ts";
+import { verifyCandidateFindings } from "./llm/verifier.ts";
 import type { JudgementPass } from "./llm/prompts.ts";
 import {
   eslintProbe,
@@ -143,13 +144,34 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
       options.passes ?? ["structure", "quality", "bug"],
       priorFindings,
     );
+    const candidateLlmFindings: FindingInput[] = [];
     for (const finding of judgement.findings) {
       const path = finding.locations[0]?.path ?? "";
       if (isArtifactPath(path)) {
         artifactFindings += 1;
         continue;
       }
+      candidateLlmFindings.push(finding);
+    }
+
+    // Second-pass Adversarial Verifier: filter hallucinations and weak findings
+    const verifiedResult = await verifyCandidateFindings(
+      options.complete,
+      context,
+      candidateLlmFindings
+    );
+
+    for (const finding of verifiedResult.verified) {
       findings.push(finding);
+    }
+
+    if (verifiedResult.dropped.length > 0) {
+      runs.push({
+        probe: "llm/verifier",
+        categories: ["bug", "quality", "structure"],
+        status: "ok",
+        detail: `Verified and dropped ${verifiedResult.dropped.length} hallucinated or unverified finding(s)`,
+      });
     }
     for (const status of judgement.passes) {
       const dropped = judgement.dropped.length;

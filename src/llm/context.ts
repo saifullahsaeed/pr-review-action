@@ -1,3 +1,4 @@
+import { buildCodebaseAstGraph } from "../probes/astGraph.ts";
 import { collectSourceFiles } from "../probes/metrics.ts";
 
 export interface ReviewContext {
@@ -35,11 +36,33 @@ export function buildContext(
     const targetSet = new Set(
       limits.targetFiles.map((p) => p.replace(/^\.\//, "").split("\\").join("/"))
     );
-    // Prioritize target files first
-    files = [
-      ...files.filter((f) => targetSet.has(f.path)),
-      ...files.filter((f) => !targetSet.has(f.path)),
-    ];
+
+    // Use AST dependency graph to find direct dependents / reverse-deps of target files
+    try {
+      const ast = buildCodebaseAstGraph(root);
+      const dependentSet = new Set<string>();
+      for (const target of targetSet) {
+        const dependents = ast.reverseDependencies.get(target);
+        if (dependents) {
+          for (const dep of dependents) {
+            if (!targetSet.has(dep)) dependentSet.add(dep);
+          }
+        }
+      }
+
+      // Order: 1) Changed target files -> 2) Direct AST dependents -> 3) Rest of files
+      files = [
+        ...files.filter((f) => targetSet.has(f.path)),
+        ...files.filter((f) => dependentSet.has(f.path)),
+        ...files.filter((f) => !targetSet.has(f.path) && !dependentSet.has(f.path)),
+      ];
+    } catch {
+      // Prioritize target files first if graph fails
+      files = [
+        ...files.filter((f) => targetSet.has(f.path)),
+        ...files.filter((f) => !targetSet.has(f.path)),
+      ];
+    }
   }
   const included: string[] = [];
   const truncated: string[] = [];
