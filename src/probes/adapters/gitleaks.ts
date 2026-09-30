@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FindingInput } from "../../findings.ts";
@@ -75,13 +75,17 @@ export const gitleaksProbe: Probe = {
     const scratch = mkdtempSync(join(tmpdir(), "harrier-gitleaks-"));
     const reportPath = join(scratch, "gitleaks.json");
     try {
-      // `gitleaks dir` is the current form for a plain directory (since v8.19); the older
-      // `detect --source --no-git` still works but is deprecated. Exit code 1 means leaks OR an
-      // error, so the report file — not the exit code — decides whether this succeeded.
-      const outcome = await runCommand(
+      // Try `gitleaks dir` (newer versions) or fallback to `gitleaks detect --no-git --source`
+      let outcome = await runCommand(
         ["gitleaks", "dir", "--report-format", "json", "--report-path", reportPath, context.root],
         { cwd: context.root, timeoutMs: context.timeoutMs },
       );
+      if (outcome.kind === "failed" || (outcome.kind === "ok" && !existsSync(reportPath))) {
+        outcome = await runCommand(
+          ["gitleaks", "detect", "--no-git", "--source", context.root, "--report-format", "json", "--report-path", reportPath],
+          { cwd: context.root, timeoutMs: context.timeoutMs },
+        );
+      }
       if (outcome.kind === "missing") {
         return {
           probe,
