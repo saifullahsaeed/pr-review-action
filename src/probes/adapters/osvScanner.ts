@@ -126,6 +126,9 @@ export const osvScannerProbe: Probe = {
         findings: [],
       };
     }
+    if (outcome.code !== 0 && outcome.code !== 1) {
+      return { probe, status: "failed", detail: `osv-scanner scan incomplete (exit ${String(outcome.code)})`, findings: parseOsVScanner(outcome.stdout) };
+    }
     return { probe, status: "ok", findings: parseOsVScanner(outcome.stdout) };
   },
 };

@@ -152,6 +152,7 @@ export function jsonReport(report: Report): Record<string, unknown> {
       return entry;
     });
   }
+  if (report.gate !== undefined) out.gate = report.gate;
   out.summary = jsonSummary(report.summary);
   out.findings = report.findings.map(jsonFinding);
   return out;

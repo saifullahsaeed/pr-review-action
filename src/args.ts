@@ -20,6 +20,11 @@ export interface ReviewArgs {
   refreshDb: boolean;
   diffRef?: string;
   configPath?: string;
+  gate: boolean;
+  safeScanners: boolean;
+  failOn?: Severity | "never";
+  baselineRef?: string;
+  policyFile?: string;
   error?: string;
 }
 
@@ -28,6 +33,11 @@ export const USAGE = `harrier — self-hosted code review
   harrier review <path> [options]
 
 Options:
+  --safe-scanners      exclude ESLint (its repository config can execute JavaScript)
+  --gate               enforce validated quality policy (AI remains advisory)
+  --fail-on <level>    gate threshold: critical, high, medium, low, info, never
+  --baseline <ref>     scan git revision to distinguish existing debt
+  --policy-file <path> trusted config file (absolute or cwd-relative)
   --out <dir>          where the report goes (default: ./report)
   --categories <a,b>   only these categories: ${CATEGORIES.join(", ")}
   --severity <level>   minimum severity to include: ${SEVERITIES.join(", ")}
@@ -43,7 +53,7 @@ Options:
   --timeout <ms>       per-scanner timeout (default: 120000)
 
 Writes report.json (canonical, machine-readable), report.sarif (SARIF 2.1.0), report.md and report.html.
-Exit 0 once the review is written. Findings are not an error; they are the product.
+Without --gate: exit 0 once reports are written. Gate: 0 pass, 1 violations, 2 incomplete/configuration error.
 `;
 
 function listOf(value: string): string[] {
@@ -62,12 +72,34 @@ export function parseReviewArgs(argv: readonly string[]): ReviewArgs {
     timeoutMs: 120000,
     offline: false,
     refreshDb: false,
+    gate: false,
+    safeScanners: false,
   };
   const positional: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     const next = argv[index + 1];
     switch (token) {
+      case "--safe-scanners":
+        args.safeScanners = true;
+        break;
+      case "--gate":
+        args.gate = true;
+        break;
+      case "--fail-on":
+        if (next === undefined || ![...SEVERITIES, "never"].includes(next as Severity)) return { ...args, error: "--fail-on needs a valid severity or never" };
+        args.failOn = next as Severity | "never";
+        args.gate = true;
+        index += 1;
+        break;
+      case "--baseline":
+      case "--policy-file":
+        if (!next || next.startsWith("--")) return { ...args, error: `${token} needs a value` };
+        if (token === "--baseline") args.baselineRef = next;
+        else args.policyFile = next;
+        args.gate = true;
+        index += 1;
+        break;
       case "--out":
         if (next === undefined) return { ...args, error: "--out needs a directory" };
         args.out = next;

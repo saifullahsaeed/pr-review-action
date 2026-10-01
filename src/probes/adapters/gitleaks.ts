@@ -108,6 +108,9 @@ export const gitleaksProbe: Probe = {
           findings: [],
         };
       }
+      if (outcome.code !== 0 && outcome.code !== 1) {
+        return { probe, status: "failed", detail: `gitleaks scan incomplete (exit ${String(outcome.code)})`, findings: parseGitleaks(report) };
+      }
       return { probe, status: "ok", findings: parseGitleaks(report) };
     } finally {
       rmSync(scratch, { recursive: true, force: true });

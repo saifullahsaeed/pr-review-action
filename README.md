@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Self-Hosted, Privacy-First Code Review Engine & CI Bot**
+**Self-Hosted Code Quality Control for GitHub Actions**
 
 *Deterministic Security & Code Scanners + Multi-Pass LLM Review + Adversarial Hallucination Verifier*
 
@@ -118,6 +118,66 @@ Options:
 ---
 
 ## CI/CD GitHub Actions Integration
+
+### Baseline-aware quality gate
+
+Use the composite Action from a **reviewed, pinned commit SHA**. It scans the PR base and current checkout, loads policy from the base revision, publishes evidence, then enforces the verdict. The example below is a template: replace `REVIEWED_COMMIT_SHA` with the release commit you trust.
+
+```yaml
+name: Code quality
+on: [pull_request]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  quality:
+    name: Harrier quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: saifullahsaeed/pr-review-action@REVIEWED_COMMIT_SHA
+        # Optional: enable advisory AI and configure your team's endpoint.
+        # with:
+        #   enable-llm: 'true'
+        #   endpoint: http://your-private-model/v1
+        #   model: your-model
+```
+
+Add `Harrier quality` as a **required branch-protection/ruleset check**. The Action cannot configure this for you. Use `pull_request`, not `pull_request_target` with untrusted code and secrets. A full checkout normally already contains the base SHA. If it is absent, Harrier fetches it; private-repository fetch may need a narrowly scoped read credential. An unavailable base produces an incomplete, blocking result. Private endpoints require a runner able to reach them.
+
+Commit this policy to the default/base branch:
+
+```json
+{
+  "gate": {
+    "failOn": "medium",
+    "scope": "new",
+    "requiredProbes": ["metrics", "gitleaks", "semgrep", "osv-scanner"]
+  }
+}
+```
+
+- Default threshold is **high**, scope **new**, with the four required probes above. `fail-on` overrides the trusted policy threshold; `never` disables finding-based failure but **does not disable required coverage**.
+- **Pass (0):** no qualifying new/worsened deterministic findings and complete required coverage. **Fail (1):** policy violations. **Incomplete (2):** missing/failed required checks, invalid policy or unavailable baseline. Both 1 and 2 fail the job.
+- Existing debt is non-blocking under `new`; `all` checks all current deterministic findings. AI findings remain advisory. Line drift alone does not create new debt; matching includes rule, paths, message and evidence and preserves occurrence counts. Renames or changed evidence conservatively count as new. No semantic equivalence or persisted issue history is claimed.
+- The comparison uses the exact PR **base SHA** and the current checkout (normally GitHub's merge checkout), not merely changed lines. Both deterministic scans must provide comparable coverage. Baseline has no LLM pass.
+- Reports are uploaded before gate enforcement, including `gate.json`, canonical `report.json` and SARIF. Job summary and PR summary carry the verdict. Inline comments are limited to gate blockers on added diff lines, capped at 20, deduplicated on reruns of the same head SHA. Older-head inline threads are not automatically resolved.
+- Fork PRs get job summaries/artifacts, not privileged PR writes. Permission failures warn but do not alter the quality verdict.
+- The Action excludes ESLint because repository JavaScript configuration can execute code. Requiring ESLint in this mode deliberately yields incomplete. Run it in a separate appropriately isolated job. No reviewed-repository install or test scripts run here.
+- Supported automatic scanner installation currently targets **Linux x64**. On other/self-hosted platforms preinstall compatible scanners. Installation failures are exposed through required-check coverage. Scanner databases/rules and repository ignore files affect scan scope; trusted gate policy is not a sandbox against malicious scanner configuration.
+- This slice does **not** add architecture boundary rules, test/coverage ingestion, expiring exceptions, or a dashboard. Existing metrics detect duplication/import cycles/fanout/long files; the gate enforces those findings according to severity.
+
+CLI equivalent:
+
+```sh
+node src/cli.ts review . --gate --baseline origin/main --no-llm --out ./report
+# --policy-file /path/to/trusted-config.json avoids working-tree policy overrides.
+```
+
+The legacy workflows below remain review/bot workflows, not this enforced quality gate.
 
 Harrier includes two ready-to-use workflows in `.github/workflows/`:
 - **`harrier-review.yml`**: Automatically reviews every Pull Request diff, runs probes and verifiers, uploads report artifacts, and posts a triage summary table.

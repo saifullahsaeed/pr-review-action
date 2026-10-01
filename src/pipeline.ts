@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Category, FindingInput, ProbeRun, Report, Severity } from "./findings.ts";
@@ -103,7 +103,7 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
     let diffFiles: string[] | undefined;
     if (options.diffRef) {
       try {
-        const stdout = execSync(`git diff --name-only ${options.diffRef}`, {
+        const stdout = execFileSync("git", ["diff", "--name-only", options.diffRef, "--"], {
           cwd: options.root,
           encoding: "utf8",
         });

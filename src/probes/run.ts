@@ -17,7 +17,12 @@ export async function runProbes(
   const runs: ProbeRun[] = [];
   const findings: FindingInput[] = [];
   for (const probe of probes) {
-    const outcome = await probe.run(context);
+    let outcome;
+    try {
+      outcome = await probe.run(context);
+    } catch (error) {
+      outcome = { probe: probe.name, status: "failed" as const, findings: [], detail: error instanceof Error ? error.message : String(error) };
+    }
     runs.push({
       probe: outcome.probe,
       categories: probe.categories,

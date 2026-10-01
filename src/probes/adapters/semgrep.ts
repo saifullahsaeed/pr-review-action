@@ -99,6 +99,10 @@ export const semgrepProbe: Probe = {
         findings: [],
       };
     }
+    const parsed = JSON.parse(outcome.stdout) as SemgrepOutput;
+    if (!Array.isArray(parsed.results) || (parsed.errors?.length ?? 0) > 0 || outcome.code !== 0) {
+      return { probe, status: "failed", detail: `semgrep scan incomplete (exit ${String(outcome.code)}, ${parsed.errors?.length ?? 0} errors)`, findings: parseSemgrep(outcome.stdout) };
+    }
     return { probe, status: "ok", findings: parseSemgrep(outcome.stdout) };
   },
 };

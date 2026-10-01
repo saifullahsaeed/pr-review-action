@@ -5,7 +5,12 @@ import { complete } from "./llm/client.ts";
 import type { ChatMessage } from "./llm/client.ts";
 import type { LlmConfig } from "./llm/config.ts";
 import { configFromEnv } from "./llm/config.ts";
-import { review } from "./pipeline.ts";
+import { review, DEFAULT_PROBES } from "./pipeline.ts";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { HarrierConfig } from "./config.ts";
+import { validateGatePolicy } from "./gate.ts";
+import { qualityReview } from "./quality.ts";
 
 function makeComplete(config: LlmConfig): (messages: ChatMessage[]) => Promise<{ content: string; model: string }> {
   return (messages) => complete(config, messages);
@@ -23,7 +28,17 @@ if (args.error !== undefined) {
   process.exit(2);
 }
 
-const fileConfig = loadConfigFile(args.root, args.configPath);
+let fileConfig: HarrierConfig | undefined;
+let gatePolicy;
+try {
+  fileConfig = args.policyFile ? JSON.parse(readFileSync(args.policyFile, "utf8")) as HarrierConfig : loadConfigFile(args.root, args.configPath);
+  if (fileConfig !== undefined && (!fileConfig || typeof fileConfig !== "object" || Array.isArray(fileConfig))) throw new Error("configuration must be an object");
+  gatePolicy = validateGatePolicy(fileConfig?.gate);
+  if (args.failOn !== undefined) gatePolicy = { ...gatePolicy, failOn: args.failOn };
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(2);
+}
 
 const effectiveCategories = args.categories ?? fileConfig?.categories;
 const effectiveSeverity = args.minSeverity ?? fileConfig?.minSeverity;
@@ -60,8 +75,9 @@ const customInstructions = [
   customRulesList.length > 0 ? "Specific rules to enforce strictly:\n" + customRulesList.map((r) => `- ${r}`).join("\n") : undefined,
 ].filter(Boolean).join("\n\n");
 
-const artifacts = await review({
-  root: args.root,
+const options = {
+  root: resolve(args.root),
+  ...(args.safeScanners ? { probes: DEFAULT_PROBES.filter(p => p.name !== "eslint") } : {}),
   outDir: effectiveOut,
   ...(effectiveCategories !== undefined ? { categories: effectiveCategories } : {}),
   ...(effectiveSeverity !== undefined ? { minSeverity: effectiveSeverity } : {}),
@@ -71,7 +87,8 @@ const artifacts = await review({
   ...(customInstructions ? { customInstructions } : {}),
   ...(completeFn !== undefined ? { complete: completeFn, passes: effectivePasses } : {}),
   ...(llmSkippedNote !== undefined ? { llmSkippedNote } : {}),
-});
+};
+const artifacts = args.gate ? await qualityReview(options, gatePolicy, args.baselineRef) : await review(options);
 
 const { summary, probes = [] } = artifacts.report;
 const skipped = probes.filter((run) => run.status !== "ok");
@@ -89,3 +106,7 @@ console.log(
     `        ${artifacts.paths.html}`,
   ].join("\n"),
 );
+if (artifacts.report.gate) {
+  console.log(`  quality gate: ${artifacts.report.gate.status}`);
+  process.exitCode = artifacts.report.gate.exitCode;
+}

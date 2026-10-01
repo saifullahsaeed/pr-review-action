@@ -2,8 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Category, Severity } from "./findings.ts";
 import type { JudgementPass } from "./llm/prompts.ts";
+import type { GatePolicy } from "./gate.ts";
 
 export interface HarrierConfig {
+  gate?: Partial<GatePolicy>;
   categories?: Category[];
   minSeverity?: Severity;
   outDir?: string;
