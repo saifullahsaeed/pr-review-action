@@ -23,14 +23,14 @@ export async function verifyCandidateFindings(
   completeFn: CompleteFn,
   context: ReviewContext,
   candidateFindings: FindingInput[],
-): Promise<{ verified: FindingInput[]; dropped: Array<{ finding: FindingInput; reason: string }> }> {
+): Promise<{ verified: FindingInput[]; dropped: Array<{ finding: FindingInput; reason: string }>; status: "ok" | "failed" | "not-needed" }> {
   // Only verify LLM-generated findings; deterministic scanner findings (osv, gitleaks, metrics) are verified by tool output
   const llmCandidatesWithIndex = candidateFindings
     .map((f, i) => ({ finding: f, index: i }))
     .filter((item) => item.finding.source === "llm");
 
   if (llmCandidatesWithIndex.length === 0) {
-    return { verified: candidateFindings, dropped: [] };
+    return { verified: candidateFindings, dropped: [], status: "not-needed" };
   }
 
   const prompt = [
@@ -80,9 +80,10 @@ export async function verifyCandidateFindings(
       }
     });
 
-    return { verified, dropped };
+    const complete = llmCandidatesWithIndex.every(item => { const v = verdicts.get(item.index); return v?.status === "keep" || v?.status === "drop"; });
+    return { verified, dropped, status: complete ? "ok" : "failed" };
   } catch (err) {
     // If the verifier pass times out or fails to parse, preserve original findings rather than wiping the review
-    return { verified: candidateFindings, dropped: [] };
+    return { verified: candidateFindings, dropped: [], status: "failed" };
   }
 }

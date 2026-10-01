@@ -19,6 +19,8 @@ export interface HarrierConfig {
     maxFiles?: number;
     maxLinesPerFile?: number;
     maxTotalLines?: number;
+    maxChars?: number;
+    maxBatches?: number;
   };
   ignore?: string[];
   rules?: {

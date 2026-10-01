@@ -3,6 +3,7 @@ import { collectSourceFiles } from "../probes/metrics.ts";
 
 export interface ReviewContext {
   root: string;
+  ranges?: Array<{ path: string; startLine: number; endLine: number }>;
   /** The tree, as the model sees it. */
   tree: string;
   /** File bodies with line numbers, because a model cites the lines you show it. */

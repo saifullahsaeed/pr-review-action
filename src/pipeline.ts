@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Category, FindingInput, ProbeRun, Report, Severity } from "./findings.ts";
@@ -8,7 +7,8 @@ import { renderHtml } from "./render/html.ts";
 import { renderJson } from "./render/json.ts";
 import { renderMarkdown } from "./render/markdown.ts";
 import { renderSarif } from "./render/sarif.ts";
-import { buildContext } from "./llm/context.ts";
+import { planBatches, validateBatchBudget } from "./llm/batches.ts";
+import type { BatchBudget, AiCoverage } from "./llm/batches.ts";
 import type { CompleteFn } from "./llm/judgement.ts";
 import { runJudgement } from "./llm/judgement.ts";
 import { verifyCandidateFindings } from "./llm/verifier.ts";
@@ -68,6 +68,7 @@ export interface ReviewOptions {
   now?: () => Date;
   diffRef?: string;
   customInstructions?: string;
+  budget?: Partial<BatchBudget>;
 }
 
 export interface ReviewArtifacts {
@@ -99,107 +100,40 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
   }
   let overview: string | undefined;
 
+  let aiCoverage: AiCoverage | undefined;
   if (options.complete !== undefined) {
-    let diffFiles: string[] | undefined;
-    if (options.diffRef) {
-      try {
-        const stdout = execFileSync("git", ["diff", "--name-only", options.diffRef, "--"], {
-          cwd: options.root,
-          encoding: "utf8",
-        });
-        diffFiles = stdout
-          .split("\n")
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0 && !isArtifactPath(line));
-      } catch {
-        // Fall back gracefully to full context if git diff fails
+    const priorFindings = findings.map(f => ({ ruleName: f.ruleName, category: f.category, severity: f.severity, message: f.message, path: f.locations[0]?.path, line: f.locations[0]?.startLine }));
+    const passes = options.passes ?? ["structure", "quality", "bug"];
+    const overviews: string[] = [];
+    try {
+      const plan = planBatches(options.root, validateBatchBudget(options.budget), options.diffRef);
+      aiCoverage = plan.coverage;
+      for (const [index, batch] of plan.batches.entries()) {
+        const localHints = priorFindings.filter(f => f.path && batch.context.included.includes(f.path));
+        const judgement = await runJudgement(options.complete, batch.context, passes, localHints, options.customInstructions);
+        artifactFindings += judgement.dropped.filter(f => typeof f.path === "string" && isArtifactPath(f.path)).length;
+        const verified = await verifyCandidateFindings(options.complete, batch.context, judgement.findings);
+        findings.push(...verified.verified);
+        aiCoverage.batches.push({ index: index + 1, ranges: batch.ranges, supportRanges: batch.supportRanges, passes: judgement.passes, verifier: verified.status });
+        if (judgement.passes.some(p => p.status !== "ok") || verified.status === "failed") aiCoverage.status = "partial";
+        if (judgement.overview) overviews.push(`Batch ${index + 1}: ${judgement.overview}`);
       }
-    }
-
-    // Smart prioritization: target files changed in diff OR flagged by deterministic probes
-    const priorityFiles = new Set<string>();
-    if (diffFiles) {
-      for (const f of diffFiles) priorityFiles.add(f);
-    }
-    for (const f of findings) {
-      const loc = f.locations?.[0]?.path;
-      if (loc && !isArtifactPath(loc)) priorityFiles.add(loc);
-    }
-
-    const context = buildContext(options.root, {
-      ...(priorityFiles.size > 0 ? { targetFiles: [...priorityFiles] } : {}),
-    });
-
-    const priorFindings = findings.map((f) => ({
-      ruleName: f.ruleName,
-      category: f.category,
-      severity: f.severity,
-      message: f.message,
-      path: f.locations?.[0]?.path,
-      line: f.locations?.[0]?.startLine,
-    }));
-
-    const judgement = await runJudgement(
-      options.complete,
-      context,
-      options.passes ?? ["structure", "quality", "bug"],
-      priorFindings,
-      options.customInstructions,
-    );
-    const candidateLlmFindings: FindingInput[] = [];
-    for (const finding of judgement.findings) {
-      const path = finding.locations[0]?.path ?? "";
-      if (isArtifactPath(path)) {
-        artifactFindings += 1;
-        continue;
+      if (passes.length === 0) { aiCoverage.status = "disabled"; aiCoverage.detail = "No AI review passes configured"; }
+      for (const pass of passes) {
+        const failures = aiCoverage.batches.filter(b => b.passes.some(p => p.pass === pass && p.status !== "ok"));
+        runs.push({ probe: `llm/${pass}`, categories: [CATEGORY_OF_PASS[pass]], status: failures.length ? "failed" : "ok", detail: `${aiCoverage.batches.length} batches; ${failures.length} failed for this pass` });
       }
-      candidateLlmFindings.push(finding);
+      runs.push({ probe: "llm/coverage", categories: ["structure", "quality", "bug"], status: aiCoverage.status === "complete" ? "ok" : aiCoverage.status === "disabled" ? "skipped" : "failed", detail: `${aiCoverage.status}: ${aiCoverage.plannedFiles} planned files, ${aiCoverage.batches.length} batches, ${aiCoverage.skipped.length} excluded/unreviewed ranges` });
+      const verifierFailed = aiCoverage.batches.some(b => b.verifier === "failed");
+      runs.push({ probe: "llm/verifier", categories: ["structure", "quality", "bug"], status: verifierFailed ? "failed" : "ok", detail: verifierFailed ? "At least one batch verifier failed; original advisory findings retained" : "Verification completed or no candidates needed verification" });
+      overview = overviews.join("\n\n") || undefined;
+    } catch (error) {
+      aiCoverage = { status: "failed", mode: options.diffRef === undefined ? "repository" : "diff", plannedFiles: 0, plannedRanges: [], batches: [], skipped: [], detail: String(error).slice(0, 500) };
+      runs.push({ probe: "llm/coverage", categories: ["structure", "quality", "bug"], status: "failed", detail: aiCoverage.detail });
     }
-
-    // Second-pass Adversarial Verifier: filter hallucinations and weak findings
-    const verifiedResult = await verifyCandidateFindings(
-      options.complete,
-      context,
-      candidateLlmFindings
-    );
-
-    for (const finding of verifiedResult.verified) {
-      findings.push(finding);
-    }
-
-    if (verifiedResult.dropped.length > 0) {
-      runs.push({
-        probe: "llm/verifier",
-        categories: ["bug", "quality", "structure"],
-        status: "ok",
-        detail: `Verified and dropped ${verifiedResult.dropped.length} hallucinated or unverified finding(s)`,
-      });
-    }
-    for (const status of judgement.passes) {
-      const dropped = judgement.dropped.length;
-      runs.push({
-        probe: `llm/${status.pass}`,
-        categories: [CATEGORY_OF_PASS[status.pass]],
-        status: status.status === "ok" ? "ok" : "failed",
-        ...(status.detail !== undefined ? { detail: status.detail } : {}),
-      });
-    }
-    if (judgement.dropped.length > 0) {
-      runs.push({
-        probe: "llm/self-check",
-        categories: ["quality"],
-        status: "ok",
-        detail: `${judgement.dropped.length} model finding(s) dropped for carrying no real file and line`,
-      });
-    }
-    overview = judgement.overview;
   } else if (options.llmSkippedNote !== undefined) {
-    runs.push({
-      probe: "llm/judgement",
-      categories: ["structure", "quality", "bug"],
-      status: "skipped",
-      detail: options.llmSkippedNote,
-    });
+    aiCoverage = { status: "disabled", mode: options.diffRef === undefined ? "repository" : "diff", plannedFiles: 0, plannedRanges: [], batches: [], skipped: [], detail: options.llmSkippedNote };
+    runs.push({ probe: "llm/judgement", categories: ["structure", "quality", "bug"], status: "skipped", detail: options.llmSkippedNote });
   }
 
   // The drop is recorded once, after every layer has run, with the true total.
@@ -230,6 +164,7 @@ export async function review(options: ReviewOptions): Promise<ReviewArtifacts> {
     findings: kept,
   });
 
+  if (aiCoverage) report.aiCoverage = aiCoverage;
   mkdirSync(options.outDir, { recursive: true });
   const paths = {
     json: join(options.outDir, "report.json"),

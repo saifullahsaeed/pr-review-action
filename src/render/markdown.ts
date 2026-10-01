@@ -72,6 +72,17 @@ export function renderMarkdown(report: Report): string {
   ];
 
   const body: string[] = [];
+  if (report.aiCoverage) {
+    const c = report.aiCoverage;
+    body.push("", "## AI review coverage", "", `**${c.status.toUpperCase()}** · ${c.mode} review · ${c.plannedFiles} planned files · ${c.batches.length} batches`, "", "Coverage describes supplied code and successful requests, not proof that no bugs exist.");
+    if (c.detail) body.push("", c.detail);
+    for (const b of c.batches) {
+      body.push("", `Batch ${b.index}: ${b.passes.map(p => `${p.pass}=${p.status}`).join(", ")}; verifier=${b.verifier}`);
+      for (const r of b.ranges) body.push(`- ${escapeCell(r.path)}:${r.startLine}–${r.endLine}`);
+      for (const r of b.supportRanges) body.push(`- Support excerpt: ${escapeCell(r.path)}:${r.startLine}–${r.endLine}`);
+    }
+    if (c.skipped.length) body.push("", "Excluded / unreviewed:", ...c.skipped.map(s => `- ${escapeCell(s.path)}${s.startLine ? `:${s.startLine}–${s.endLine}` : ""}: ${s.reason}`));
+  }
   if (report.probes !== undefined && report.probes.length > 0) {
     body.push("", "### Probes", "");
     for (const run of report.probes) {

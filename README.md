@@ -170,6 +170,26 @@ Commit this policy to the default/base branch:
 - Supported automatic scanner installation currently targets **Linux x64**. On other/self-hosted platforms preinstall compatible scanners. Installation failures are exposed through required-check coverage. Scanner databases/rules and repository ignore files affect scan scope; trusted gate policy is not a sandbox against malicious scanner configuration.
 - This slice does **not** add architecture boundary rules, test/coverage ingestion, expiring exceptions, or a dashboard. Existing metrics detect duplication/import cycles/fanout/long files; the gate enforces those findings according to severity.
 
+### Large-PR AI batching
+
+AI review processes changed text hunks in multiple bounded batches, retaining original line numbers and up to three surrounding context lines. Changes past line 400 are included; large hunks split across batches. Non-PR reviews batch all eligible source files. Each batch runs the configured passes and, when needed, the verifier. Small direct-caller excerpts use spare capacity; this is not comprehensive impact analysis.
+
+```json
+{
+  "budget": {
+    "maxFiles": 40,
+    "maxLinesPerFile": 400,
+    "maxTotalLines": 6000,
+    "maxChars": 48000,
+    "maxBatches": 100
+  }
+}
+```
+
+The first four limits are **per batch**, not per review. `maxChars` bounds numbered source context (characters, not model tokens or the entire prompt). Instructions, hints and verifier findings add overhead; choose limits for your endpoint. `maxBatches` caps batches: each can make one request per pass plus a verifier. Batches run sequentially, so large reviews take longer and cost more.
+
+`report.json` includes `aiCoverage`; Markdown/PR summaries show line ranges, pass statuses, support excerpts and exclusions. Budget-exhausted ranges, oversized lines, unsupported/deleted/binary/mode-only files and failures are explicit. Invalid diff references do not silently fall back. Partial AI coverage remains advisory and does not change the deterministic gate verdict. No claim of full-repository semantic review is made. `ignore` and rule enable/disable settings remain unsupported.
+
 CLI equivalent:
 
 ```sh

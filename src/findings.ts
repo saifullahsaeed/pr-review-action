@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { GateResult } from "./gate.ts";
+import type { AiCoverage } from "./llm/batches.ts";
 
 /** The one findings model. Every layer of Harrier — probes, LLM passes, renderers — speaks this. */
 
@@ -96,6 +97,7 @@ export interface Report {
   summary: Summary;
   findings: Finding[];
   gate?: GateResult;
+  aiCoverage?: AiCoverage;
 }
 
 /**

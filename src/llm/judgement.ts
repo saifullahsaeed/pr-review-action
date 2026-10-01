@@ -71,6 +71,7 @@ export function parseJudgementResponse(
   text: string,
 ): { findings: FindingInput[]; dropped: RawJudgement[]; overview?: string } {
   const parsed = extractJson(text) as JudgementResponse;
+  if (!parsed || !Array.isArray(parsed.findings)) throw new Error("AI response must contain a findings array");
   const findings: FindingInput[] = [];
   const dropped: RawJudgement[] = [];
   for (const raw of parsed.findings ?? []) {
@@ -149,7 +150,13 @@ export async function runJudgement(
     try {
       const response = await completeFn(messages);
       const parsed = parseJudgementResponse(pass, response.content);
-      findings.push(...parsed.findings);
+      for (const finding of parsed.findings) {
+        const valid = finding.locations.every(loc => context.ranges
+          ? Number.isInteger(loc.startLine) && Number.isInteger(loc.endLine ?? loc.startLine) && (loc.endLine ?? loc.startLine) >= loc.startLine && context.ranges.some(r => r.path === loc.path && loc.startLine >= r.startLine && (loc.endLine ?? loc.startLine) <= r.endLine)
+          : context.included.includes(loc.path));
+        if (valid) findings.push(finding);
+        else dropped.push({ ruleName: finding.ruleName, path: finding.locations[0]?.path });
+      }
       dropped.push(...parsed.dropped);
       if (parsed.overview !== undefined) overviews.push(`${pass}: ${parsed.overview}`);
       statuses.push({ pass, status: "ok" });
