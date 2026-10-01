@@ -1,6 +1,6 @@
 # CLI and container a team can run
 
-**Status:** planning · **Priority:** normal · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-09-22T15:40:18.203141+00:00
+**Status:** done · **Priority:** normal · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-10-01T18:42:59.446233+00:00
 
 ## How you know it is done
 
@@ -8,11 +8,11 @@
 
 ## Checklist
 
-- [ ] `harrier review` CLI with --out, --endpoint, --categories and --severity flags
-- [ ] Pipeline: probes -> LLM passes -> merge/dedupe -> render
-- [ ] Dockerfile and docker-compose.yml
-- [ ] Offline/mirrored vulnerability-DB path documented and wired
-- [ ] End-to-end over two real repos; all three report files verified
+- [x] `harrier review` CLI with --out, --endpoint, --categories and --severity flags
+- [x] Pipeline: probes -> LLM passes -> merge/dedupe -> render
+- [x] Dockerfile and docker-compose.yml
+- [x] Offline/mirrored vulnerability-DB path documented and wired
+- [x] End-to-end over two real repos; all three report files verified
 
 
 ## Delivered
