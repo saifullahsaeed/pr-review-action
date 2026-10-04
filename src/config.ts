@@ -7,6 +7,7 @@ import type { EnforcementPolicy } from "./rules/policy.ts";
 
 export interface HarrierConfig {
   enforcement?: EnforcementPolicy;
+  tokenBudget?: { maxInputTokens: number; reservedTokens?: number };
   gate?: Partial<GatePolicy>;
   categories?: Category[];
   minSeverity?: Severity;

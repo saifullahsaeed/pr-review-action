@@ -268,6 +268,14 @@ AI review processes changed text hunks in multiple bounded batches, retaining or
 }
 ```
 
+Optional exact text-token enforcement can additionally be configured:
+
+```json
+{ "tokenBudget": { "maxInputTokens": 12000, "reservedTokens": 256 } }
+```
+
+This counts every outgoing message's content with the model's BPE tokenizer, including instructions, code, document review and verifier requests. It rejects oversized requests before network submission; reduce batch/context sizes to avoid incomplete coverage. It does not automatically repack batches. Chat-template/provider overhead is a separately configured reserve, **not an exact server-side prompt-token count**. First supported models are gpt-4o / gpt-4o-2024-08-06, gpt-4o-mini / gpt-4o-mini-2024-07-18 and gpt-4-turbo / gpt-4-turbo-2024-04-09, optionally prefixed `openai/`. This opt-in mode requires installed Python `tiktoken` and preloaded encoding cache; Harrier never downloads tokenizer data implicitly. Missing tooling/cache or unsupported models report failed/incomplete AI coverage rather than falling back to character estimates. Tokenizer dependencies are not installed in the Docker image by this release. Without tokenBudget, existing character bounds remain in effect.
+
 The first four limits are **per batch**, not per review. `maxChars` bounds numbered source context (characters, not model tokens or the entire prompt). Instructions, hints and verifier findings add overhead; choose limits for your endpoint. `maxBatches` caps batches: each can make one request per pass plus a verifier. Batches run sequentially, so large reviews take longer and cost more.
 
 `report.json` includes `aiCoverage`; Markdown/PR summaries show line ranges, pass statuses, support excerpts and exclusions. Budget-exhausted ranges, oversized lines, unsupported/deleted/binary/mode-only files and failures are explicit. Invalid diff references do not silently fall back. Partial AI coverage remains advisory and does not change the deterministic gate verdict. No claim of full-repository semantic review is made. `ignore` and rule enable/disable settings remain unsupported.

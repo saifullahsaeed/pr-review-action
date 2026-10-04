@@ -1,10 +1,10 @@
 # Project rules resolve into a validated scoped enforcement contract
 
-**Status:** working · **Priority:** high · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-10-04T11:12:06.127828+00:00
+**Status:** done · **Priority:** high · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-10-04T11:55:12.020933+00:00
 
 ## How you know it is done
 
-Implement the first unit of the rule-enforcement plan explicitly approved by the user with 'go ahed' in this conversation: validated rule IDs, source references, checker contracts and scoped ancestor AGENTS resolution. npm test and npm run typecheck pass.
+Validated explicit policy and optional AGENTS/configured-document sources, scoped source resolution, generic rule results; npm test and npm run typecheck pass.
 
 ## Checklist
 

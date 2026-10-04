@@ -13,6 +13,7 @@ import { validateGatePolicy } from "./gate.ts";
 import { qualityReview } from "./quality.ts";
 import { validateBatchBudget } from "./llm/batches.ts";
 import { validateEnforcementPolicy } from "./rules/policy.ts";
+import { validateTokenBudget, tokenBoundedComplete } from "./llm/tokens.ts";
 
 function makeComplete(config: LlmConfig): (messages: ChatMessage[]) => Promise<{ content: string; model: string }> {
   return (messages) => complete(config, messages);
@@ -34,11 +35,13 @@ let fileConfig: HarrierConfig | undefined;
 let gatePolicy;
 let budget;
 let enforcement;
+let tokenBudget;
 try {
   fileConfig = args.policyFile ? JSON.parse(readFileSync(args.policyFile, "utf8")) as HarrierConfig : loadConfigFile(args.root, args.configPath);
   if (fileConfig !== undefined && (!fileConfig || typeof fileConfig !== "object" || Array.isArray(fileConfig))) throw new Error("configuration must be an object");
   gatePolicy = validateGatePolicy(fileConfig?.gate);
   budget = validateBatchBudget(fileConfig?.budget);
+  tokenBudget = validateTokenBudget(fileConfig?.tokenBudget);
   // With a baseline, enforcement is loaded from the trusted revision by qualityReview.
   enforcement = args.baselineRef ? undefined : validateEnforcementPolicy(fileConfig?.enforcement);
   if (args.failOn !== undefined) gatePolicy = { ...gatePolicy, failOn: args.failOn };
@@ -71,7 +74,8 @@ if (!effectiveUseLlm) {
 } else if (env.config === undefined) {
   llmSkippedNote = `no model endpoint configured (${env.missing.join(", ")}) — judgement passes did not run`;
 } else {
-  completeFn = makeComplete(env.config);
+  const endpointComplete = makeComplete(env.config);
+  completeFn = tokenBudget ? tokenBoundedComplete(env.config.model, tokenBudget, endpointComplete) : endpointComplete;
 }
 
 const started = Date.now();
