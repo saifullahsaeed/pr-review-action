@@ -1,10 +1,10 @@
 # Large PRs receive bounded AI batches with explicit coverage
 
-**Status:** working · **Priority:** high · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-10-01T15:20:33.237171+00:00
+**Status:** done · **Priority:** high · **Filed by:** saifullahsaeed.work@gmail.com (Kith) · **Updated:** 2026-10-04T11:59:28.856369+00:00
 
 ## How you know it is done
 
-npm test and npm run typecheck pass; tests cover 400 changed files, changes past line 400, token-bounded contexts, accurate citation ranges, partial batch failures and JSON/Markdown coverage. Context budget wired from trusted config; no silent diff fallback or omission.
+400-file batching and deep line coverage plus opt-in exact BPE content-token guard for selected OpenAI models. Chat-template overhead is reserved separately; unsupported models/missing cache never fall back. npm test and typecheck pass.
 
 ## Delivered
 
