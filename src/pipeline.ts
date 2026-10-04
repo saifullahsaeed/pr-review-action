@@ -23,6 +23,7 @@ import {
   semgrepProbe,
 } from "./probes/run.ts";
 import type { Probe } from "./probes/types.ts";
+import type { EnforcementPolicy } from "./rules/policy.ts";
 
 export const TOOL_VERSION = "0.1.0";
 
@@ -69,6 +70,8 @@ export interface ReviewOptions {
   diffRef?: string;
   customInstructions?: string;
   budget?: Partial<BatchBudget>;
+  enforcement?: EnforcementPolicy;
+  evidenceFile?: string;
 }
 
 export interface ReviewArtifacts {

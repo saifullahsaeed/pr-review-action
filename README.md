@@ -72,6 +72,88 @@ Artifacts will be written directly to `./report`.
 
 ---
 
+## Project-rule and document compliance
+
+Harrier checks project requirements as well as security and general code quality. Configure existing documents directly; you do not need to rewrite their contents into individual checker rules. AGENTS inheritance is optional.
+
+```json
+{
+  "enforcement": {
+    "version": 1,
+    "agents": { "enabled": true, "required": true },
+    "documents": [
+      {
+        "id": "backend-architecture",
+        "paths": ["docs/architecture", "docs/rules/CODING.md"],
+        "scope": ["backend/**/*.py"],
+        "exclude": ["backend/**/migrations/**"],
+        "role": "standards",
+        "required": true
+      },
+      {
+        "id": "product-context",
+        "paths": ["docs/PRODUCT.md"],
+        "scope": ["**"],
+        "role": "reference",
+        "required": false
+      }
+    ],
+    "maxContextChars": 48000,
+    "rules": [
+      {
+        "id": "permissions.no-legacy",
+        "description": "Use project permissions rather than user.has_perm",
+        "status": "approved",
+        "required": true,
+        "severity": "high",
+        "scope": ["backend/**/*.py"],
+        "exclude": ["backend/**/tests/**"],
+        "source": { "path": "AGENTS.md", "startLine": 63, "endLine": 66 },
+        "checker": { "kind": "python-call", "forbidden": ["*.has_perm"] }
+      }
+    ]
+  }
+}
+```
+
+Paths are literal repository-relative file/folder paths, not URLs or external filesystem paths. Folders are read recursively (Markdown, text, RST, JSON and YAML); unsupported files, missing material and symlink escapes produce incomplete coverage. Hidden entries are excluded from configured folders. Scope/exclude use Node path glob syntax. References are context only; standards may contain mandatory requirements. Explicit proposals/drafts must not become blocking requirements.
+
+```sh
+node src/cli.ts review . --gate --baseline origin/main --out /tmp/harrier-report
+```
+
+With `--baseline`, **enforcement policy, cited rule text and documents come from that exact base revision**, not modified PR files. Policy changes are listed separately. Introduce policy on the trusted base first. Without a baseline, explicitly configured local policy is used and all tracked/unignored untracked files are checked. Enforcement configured locally automatically enables the gate. Other display/LLM configuration is still loaded by the CLI; use the trusted `--policy-file` mechanism in CI. The composite Action already supplies base configuration. Required-check branch protection must be configured by the team.
+
+- **Pass (0):** required configured checks completed with no reported violation. Document pass means model review completed, not proof of universal compliance.
+- **Fail (1):** required syntax/ledger/test checks or adversarially confirmed document violations failed. Each document violation must exactly cite a supplied requirement and offending source line.
+- **Incomplete (2):** required material, model access, valid response, verifier agreement, execution evidence or context capacity is unavailable. `--no-llm` cannot silently pass required document review. `--fail-on never` does not disable required rule checks.
+
+Document review supplies a whole changed file and all documents for each applicable source, with no hidden truncation. Each file/source can make a review request plus a verifier request; requests are sequential. `maxContextChars` limits numbered context; protocol and verification add overhead. Large context is **incomplete**, not automatically chunked yet. AGENTS chains are root-to-local; root principles remain safeguards and local specifics specialize them. All applicable configured sources are included as related context so conflicts can be surfaced by the model. Conflict detection and semantic interpretation are not deterministic guarantees. Linked documents are not automatically crawled: list the necessary paths explicitly. Runtime/process guarantees need execution evidence, not just a model reading code.
+
+Explicit checkers use stable IDs and declared scopes; approved/proposed status is operator-supplied, never inferred automatically from prose. A checker can omit `source` when defined directly in configuration; the citation defaults to `harrier.config.json:1`. Supported first-release kinds:
+
+| Kind | Configuration | Verification boundary |
+| --- | --- | --- |
+| `python-call` | `forbidden`: dotted names, `*` segments | Python AST calls and basic import aliases; no runtime dispatch/dataflow guarantee |
+| `python-import` | `forbidden`: dotted module prefixes | Absolute and repository-relative imports; configure both spellings where needed |
+| `dependency-ledger` | `manifests`, `ledger` | Dependency deltas in package.json/simple requirements*.txt need changed Markdown rows: Package, Status, Reason; removals need `removed`. Reason quality is not proven. Unsupported manifests are incomplete |
+| `evidence` | `checkId` | External trusted producer reports execution for the exact clean reviewed Git revision |
+| `semantic` | `instructions` | No deterministic checker: required entries remain incomplete. Use configured documents for model-based review |
+
+Python checks require `python3`; Harrier uses isolated standard-library AST parsing and never imports the reviewed Python modules. Comments/strings are not treated as calls. Deletions under Python/document scopes currently produce incomplete instead of inventing evidence about removed code. Rules without applicable changed files are `not-applicable`. Checks inspect the whole changed file, not just added lines, so pre-existing violations in an edited file may block.
+
+For trusted test evidence, use `--evidence-file /outside/repo/evidence.json`:
+
+```json
+{
+  "version": 1,
+  "revision": "0123456789012345678901234567890123456789",
+  "checks": [{ "checkId": "tenant-isolation", "exitCode": 0, "command": "python -m pytest tenant_tests" }]
+}
+```
+
+The revision must match HEAD and the reviewed tree must be clean. Harrier validates producer attestations, **does not prove their authenticity**, and never executes repository test scripts automatically. Configure trusted isolated execution separately. JSON and Markdown expose per-rule results, citations and gaps; security scanners and general AI reviews continue separately. Live model/GitHub validation is distinct from fixture tests.
+
 ## Configuration (`harrier.config.json`)
 
 Harrier automatically looks for `harrier.config.json` or `.harrier.json` in your repository root:

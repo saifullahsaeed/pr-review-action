@@ -11,6 +11,7 @@ import { renderJson } from "./render/json.ts";
 import { renderMarkdown } from "./render/markdown.ts";
 import { renderSarif } from "./render/sarif.ts";
 import { renderHtml } from "./render/html.ts";
+import { runEnforcement } from "./rules/run.ts";
 
 export function resolveCommit(root: string, ref: string): string {
   return execFileSync("git", ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -41,8 +42,12 @@ export async function qualityReview(options: ReviewOptions, policy: GatePolicy, 
   }
   // Gate evidence must not be hidden by report display filters.
   const { categories: _categories, minSeverity: _severity, ...unfiltered } = options;
+  const enforcement = await runEnforcement({ root: options.root, ...(baselineRef ? { baselineRef } : {}),
+    ...(options.enforcement ? { policy: options.enforcement } : {}), ...(options.evidenceFile ? { evidenceFile: options.evidenceFile } : {}),
+    ...(options.complete ? { complete: options.complete } : {}) });
   const artifacts = await review(unfiltered);
   artifacts.report.findings = artifacts.report.findings.map(f => relativeFinding(f, options.root));
+  if (enforcement) artifacts.report.enforcement = enforcement;
   const gate = evaluateGate(artifacts.report, policy, baseline, baselineInfo);
   artifacts.report.gate = gate;
   writeFileSync(artifacts.paths.json, renderJson(artifacts.report));

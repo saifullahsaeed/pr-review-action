@@ -154,6 +154,7 @@ export function jsonReport(report: Report): Record<string, unknown> {
   }
   if (report.gate !== undefined) out.gate = report.gate;
   if (report.aiCoverage !== undefined) out.aiCoverage = report.aiCoverage;
+  if (report.enforcement !== undefined) out.enforcement = report.enforcement;
   out.summary = jsonSummary(report.summary);
   out.findings = report.findings.map(jsonFinding);
   return out;

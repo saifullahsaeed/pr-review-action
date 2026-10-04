@@ -119,6 +119,20 @@
         }
       }
     },
+    "enforcement": {
+      "type": "object",
+      "required": ["status", "changedFiles", "policyChanges", "rules", "documents", "reasons"],
+      "properties": {
+        "status": { "enum": ["pass", "fail", "incomplete"] },
+        "policyRevision": { "type": "string" },
+        "reviewedRevision": { "type": "string" },
+        "changedFiles": { "type": "array", "items": { "type": "string" } },
+        "policyChanges": { "type": "array", "items": { "type": "string" } },
+        "rules": { "type": "array", "items": { "type": "object", "required": ["ruleId", "status", "required", "source", "checkedFiles", "evidence"] } },
+        "documents": { "type": "array", "items": { "type": "object", "required": ["sourceId", "file", "required", "role", "status", "documents", "violations", "detail"] } },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "aiCoverage": {
       "type": "object",
       "required": [

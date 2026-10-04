@@ -3,8 +3,10 @@ import { join } from "node:path";
 import type { Category, Severity } from "./findings.ts";
 import type { JudgementPass } from "./llm/prompts.ts";
 import type { GatePolicy } from "./gate.ts";
+import type { EnforcementPolicy } from "./rules/policy.ts";
 
 export interface HarrierConfig {
+  enforcement?: EnforcementPolicy;
   gate?: Partial<GatePolicy>;
   categories?: Category[];
   minSeverity?: Severity;

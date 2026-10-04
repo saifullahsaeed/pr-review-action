@@ -25,6 +25,7 @@ export interface ReviewArgs {
   failOn?: Severity | "never";
   baselineRef?: string;
   policyFile?: string;
+  evidenceFile?: string;
   error?: string;
 }
 
@@ -38,6 +39,7 @@ Options:
   --fail-on <level>    gate threshold: critical, high, medium, low, info, never
   --baseline <ref>     scan git revision to distinguish existing debt
   --policy-file <path> trusted config file (absolute or cwd-relative)
+  --evidence-file <path> trusted external test evidence JSON for this exact clean revision
   --out <dir>          where the report goes (default: ./report)
   --categories <a,b>   only these categories: ${CATEGORIES.join(", ")}
   --severity <level>   minimum severity to include: ${SEVERITIES.join(", ")}
@@ -94,8 +96,10 @@ export function parseReviewArgs(argv: readonly string[]): ReviewArgs {
         break;
       case "--baseline":
       case "--policy-file":
+      case "--evidence-file":
         if (!next || next.startsWith("--")) return { ...args, error: `${token} needs a value` };
         if (token === "--baseline") args.baselineRef = next;
+        else if (token === "--evidence-file") args.evidenceFile = next;
         else args.policyFile = next;
         args.gate = true;
         index += 1;

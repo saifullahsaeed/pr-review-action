@@ -72,6 +72,24 @@ export function renderMarkdown(report: Report): string {
   ];
 
   const body: string[] = [];
+  if (report.enforcement) {
+    const e = report.enforcement;
+    body.push("", "## Project compliance", "", `**${e.status.toUpperCase()}** · ${e.changedFiles.length} files in scope`,
+      "", `Trusted policy revision: ${e.policyRevision ?? "explicit local configuration"}`,
+      "", "Document compliance is model-reviewed, not deterministic proof; proposals and reference material are not mandatory rules.");
+    for (const reason of e.reasons) body.push(`- ${escapeCell(reason)}`);
+    for (const r of e.rules) {
+      body.push("", `### Rule ${escapeCell(r.ruleId)} — ${r.status} (${r.required ? "required" : "advisory"})`,
+        `Source: ${escapeCell(r.source.path)}:${r.source.startLine}; checked files: ${r.checkedFiles.map(escapeCell).join(", ") || "none"}`);
+      for (const proof of r.evidence) body.push(`- ${proof.path ? `${escapeCell(proof.path)}:${proof.line ?? "?"}: ` : ""}${escapeCell(proof.detail)}`);
+    }
+    for (const d of e.documents) {
+      body.push("", `### Documents ${escapeCell(d.sourceId)} → ${escapeCell(d.file)} — ${d.status} (${d.required ? "required" : "advisory"})`,
+        `Sources: ${d.documents.map(escapeCell).join(", ") || "unavailable"}`, escapeCell(d.detail));
+      for (const v of d.violations) body.push(`- ${escapeCell(v.message)}; requirement ${escapeCell(v.requirement.path)}:${v.requirement.line} “${escapeCell(v.requirement.quote)}”; code ${escapeCell(v.code.path)}:${v.code.line} “${escapeCell(v.code.quote)}”; verifier=${v.verified}`);
+    }
+    if (e.policyChanges.length) body.push("", "Policy/document changes (base requirements remain authoritative):", ...e.policyChanges.map(p => `- ${escapeCell(p)}`));
+  }
   if (report.aiCoverage) {
     const c = report.aiCoverage;
     body.push("", "## AI review coverage", "", `**${c.status.toUpperCase()}** · ${c.mode} review · ${c.plannedFiles} planned files · ${c.batches.length} batches`, "", "Coverage describes supplied code and successful requests, not proof that no bugs exist.");

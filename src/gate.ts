@@ -78,7 +78,10 @@ export function evaluateGate(report: Report, policy: GatePolicy, baseline?: Repo
       if (run?.status !== "ok") reasons.push(`Baseline check ${probe}: ${run?.status ?? "missing"}${run?.detail ? ` — ${run.detail}` : ""}`);
     }
   }
-  const status = reasons.length ? "incomplete" : blockers.length ? "fail" : "pass";
+  const compliance = report.enforcement;
+  if (compliance?.status === "incomplete") reasons.push(...compliance.reasons);
+  const status = reasons.length ? "incomplete" : blockers.length || compliance?.status === "fail" ? "fail" : "pass";
+  if (compliance?.status === "fail") reasons.push(...compliance.reasons);
   if (blockers.length) reasons.push(`${blockers.length} deterministic finding(s) violate the ${policy.scope}-findings threshold (${policy.failOn})`);
   return { status, exitCode: status === "pass" ? 0 : status === "fail" ? 1 : 2, policy, baseline: baselineInfo, changes, resolved: baseline && status !== "incomplete" ? [...remaining.values()].flat().filter(f => report.probes?.some(r => r.probe === f.probe && r.status === "ok")).map(f => f.id) : [], blockers, advisory, reasons };
 }
@@ -95,6 +98,6 @@ export function renderGateMarkdown(gate: GateResult, report: Report): string {
   }
   lines.push("", "## Check coverage", "");
   for (const r of report.probes ?? []) lines.push(`- ${r.probe}: **${r.status}**${gate.policy.requiredProbes.includes(r.probe) ? " (required)" : ""}${r.detail ? ` — ${r.detail}` : ""}`);
-  lines.push("", "AI findings are advisory; they do not fail this gate. No baseline means all deterministic findings are new. Resolved counts are withheld when comparison is incomplete.", "");
+  lines.push("", "General AI code-review findings are advisory. Required project-document compliance is enforced separately and is model-reviewed, not deterministic proof. No baseline means all deterministic findings are new. Resolved counts are withheld when comparison is incomplete.", "");
   return lines.join("\n");
 }

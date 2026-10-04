@@ -12,6 +12,7 @@ import type { HarrierConfig } from "./config.ts";
 import { validateGatePolicy } from "./gate.ts";
 import { qualityReview } from "./quality.ts";
 import { validateBatchBudget } from "./llm/batches.ts";
+import { validateEnforcementPolicy } from "./rules/policy.ts";
 
 function makeComplete(config: LlmConfig): (messages: ChatMessage[]) => Promise<{ content: string; model: string }> {
   return (messages) => complete(config, messages);
@@ -32,11 +33,14 @@ if (args.error !== undefined) {
 let fileConfig: HarrierConfig | undefined;
 let gatePolicy;
 let budget;
+let enforcement;
 try {
   fileConfig = args.policyFile ? JSON.parse(readFileSync(args.policyFile, "utf8")) as HarrierConfig : loadConfigFile(args.root, args.configPath);
   if (fileConfig !== undefined && (!fileConfig || typeof fileConfig !== "object" || Array.isArray(fileConfig))) throw new Error("configuration must be an object");
   gatePolicy = validateGatePolicy(fileConfig?.gate);
   budget = validateBatchBudget(fileConfig?.budget);
+  // With a baseline, enforcement is loaded from the trusted revision by qualityReview.
+  enforcement = args.baselineRef ? undefined : validateEnforcementPolicy(fileConfig?.enforcement);
   if (args.failOn !== undefined) gatePolicy = { ...gatePolicy, failOn: args.failOn };
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
@@ -81,6 +85,8 @@ const customInstructions = [
 const options = {
   root: resolve(args.root),
   budget,
+  ...(enforcement ? { enforcement } : {}),
+  ...(args.evidenceFile ? { evidenceFile: args.evidenceFile } : {}),
   ...(args.safeScanners ? { probes: DEFAULT_PROBES.filter(p => p.name !== "eslint") } : {}),
   outDir: effectiveOut,
   ...(effectiveCategories !== undefined ? { categories: effectiveCategories } : {}),
@@ -92,7 +98,7 @@ const options = {
   ...(completeFn !== undefined ? { complete: completeFn, passes: effectivePasses } : {}),
   ...(llmSkippedNote !== undefined ? { llmSkippedNote } : {}),
 };
-const artifacts = args.gate ? await qualityReview(options, gatePolicy, args.baselineRef) : await review(options);
+const artifacts = args.gate || enforcement ? await qualityReview(options, gatePolicy, args.baselineRef) : await review(options);
 
 const { summary, probes = [] } = artifacts.report;
 const skipped = probes.filter((run) => run.status !== "ok");
